@@ -309,10 +309,20 @@ const App = {
 
         this.state.taf = taf;
 
-        // Update TAF validity
+        // Update TAF validity with airport info
         const validityEl = document.getElementById('tafValidity');
         if (validityEl && taf.validFrom && taf.validTo) {
-            validityEl.textContent = `Valid: ${taf.validFrom}Z to ${taf.validTo}Z`;
+            let validityText = `Valid: ${taf.validFrom}Z to ${taf.validTo}Z`;
+
+            // Show nearby airport info if using fallback TAF
+            if (data.icaoId && data.icaoId !== this.airport.icao && data.distance) {
+                validityText = `${data.icaoId} TAF (${data.distance.toFixed(1)} nm) - ${validityText}`;
+                validityEl.style.color = '#FFD700'; // Gold color to indicate nearby TAF
+            } else {
+                validityEl.style.color = ''; // Reset to default
+            }
+
+            validityEl.textContent = validityText;
         }
 
         // Update timeline

@@ -4,12 +4,8 @@
  */
 
 const WeatherAPI = {
-    // Base URL for Aviation Weather Center API
-    baseUrl: 'https://aviationweather.gov/api/data',
-
-    // CORS proxy (needed for browser requests)
-    // In production, you'd want your own proxy or server
-    corsProxy: 'https://corsproxy.io/?',
+    // Cloudflare Worker proxy for CORS-free API access
+    workerUrl: 'https://weather-proxy.ian-284.workers.dev',
 
     // Cache for storing responses
     cache: {
@@ -55,7 +51,7 @@ const WeatherAPI = {
      * Fetch current METAR
      */
     async fetchMetar(station = this.config.station) {
-        const url = `${this.corsProxy}${encodeURIComponent(`${this.baseUrl}/metar?ids=${station}&format=json`)}`;
+        const url = `${this.workerUrl}/metar?ids=${station}&format=json`;
 
         try {
             const response = await this.fetchWithRetry(url);
@@ -83,10 +79,87 @@ const WeatherAPI = {
     },
 
     /**
-     * Fetch TAF
+     * Calculate distance between two points using Haversine formula
+     * Returns distance in nautical miles
+     */
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 3440.065; // Earth's radius in nautical miles
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    },
+
+    /**
+     * Search for nearest TAF if direct TAF not available
+     */
+    async findNearestTaf(station = this.config.station) {
+        try {
+            // First, get the coordinates from the METAR
+            const metar = await this.fetchMetar(station);
+            if (!metar || !metar.lat || !metar.lon) {
+                Utils.log('Cannot search for nearest TAF: no coordinates available', 'warn');
+                return null;
+            }
+
+            const lat = parseFloat(metar.lat);
+            const lon = parseFloat(metar.lon);
+
+            // Try expanding search radii: 50nm, 100nm, 150nm
+            const searchRadii = [0.75, 1.5, 2.25]; // degrees (approximately 50, 100, 150 nm)
+
+            for (const radius of searchRadii) {
+                Utils.log(`Searching for TAF within ${radius * 66.67} nm...`, 'info');
+
+                const minLat = lat - radius;
+                const maxLat = lat + radius;
+                const minLon = lon - radius;
+                const maxLon = lon + radius;
+
+                const url = `${this.workerUrl}/taf?bbox=${minLat},${minLon},${maxLat},${maxLon}&format=json`;
+
+                try {
+                    const response = await this.fetchWithRetry(url);
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        // Filter out the original airport and calculate distances
+                        const candidates = data
+                            .filter(taf => taf.icaoId !== station && taf.lat && taf.lon)
+                            .map(taf => ({
+                                ...taf,
+                                distance: this.calculateDistance(lat, lon, parseFloat(taf.lat), parseFloat(taf.lon))
+                            }))
+                            .sort((a, b) => a.distance - b.distance);
+
+                        if (candidates.length > 0) {
+                            const nearest = candidates[0];
+                            Utils.log(`Found TAF at ${nearest.icaoId} (${nearest.distance.toFixed(1)} nm away)`, 'info');
+                            return nearest;
+                        }
+                    }
+                } catch (error) {
+                    Utils.log(`Search failed at radius ${radius}: ${error.message}`, 'warn');
+                }
+            }
+
+            Utils.log('No nearby TAF found within 150 nm', 'warn');
+            return null;
+        } catch (error) {
+            Utils.log(`Failed to find nearest TAF: ${error.message}`, 'error');
+            return null;
+        }
+    },
+
+    /**
+     * Fetch TAF with fallback to nearest airport
      */
     async fetchTaf(station = this.config.station) {
-        const url = `${this.corsProxy}${encodeURIComponent(`${this.baseUrl}/taf?ids=${station}&format=json`)}`;
+        // Try direct TAF first
+        const url = `${this.workerUrl}/taf?ids=${station}&format=json`;
 
         try {
             const response = await this.fetchWithRetry(url);
@@ -99,7 +172,17 @@ const WeatherAPI = {
                 return data[0];
             }
 
-            throw new Error('No TAF data returned');
+            // No direct TAF available, search for nearest
+            Utils.log(`No TAF available for ${station}, searching nearby airports...`, 'warn');
+            const nearestTaf = await this.findNearestTaf(station);
+
+            if (nearestTaf) {
+                this.cache.taf = nearestTaf;
+                this.cache.lastTafFetch = new Date();
+                return nearestTaf;
+            }
+
+            throw new Error('No TAF data available');
         } catch (error) {
             Utils.log(`Failed to fetch TAF: ${error.message}`, 'error');
 
