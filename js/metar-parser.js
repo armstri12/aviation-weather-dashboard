@@ -200,9 +200,29 @@ const MetarParser = {
             if (json.wdir !== undefined) metar.wind.direction = json.wdir;
             if (json.wspd !== undefined) metar.wind.speed = json.wspd;
             if (json.wgst !== undefined) metar.wind.gust = json.wgst;
-            if (json.visib !== undefined) metar.visibility = json.visib;
-            if (json.altim !== undefined) metar.altimeter = json.altim;
-            if (json.fltcat !== undefined) metar.flightCategory = json.fltcat;
+
+            // Handle visibility (may be string like "10+")
+            if (json.visib !== undefined) {
+                if (typeof json.visib === 'string') {
+                    metar.visibility = json.visib.includes('10') || json.visib.includes('+') ? 10 : parseFloat(json.visib);
+                } else {
+                    metar.visibility = json.visib;
+                }
+            }
+
+            // Handle altimeter - convert from millibars if > 100
+            if (json.altim !== undefined) {
+                if (json.altim > 100) {
+                    // Convert millibars to inHg (1 mb = 0.02953 inHg)
+                    metar.altimeter = json.altim * 0.02953;
+                } else {
+                    metar.altimeter = json.altim;
+                }
+            }
+
+            // Handle flight category (API uses fltCat with capital C)
+            if (json.fltCat !== undefined) metar.flightCategory = json.fltCat;
+            else if (json.fltcat !== undefined) metar.flightCategory = json.fltcat;
         }
 
         return metar;
