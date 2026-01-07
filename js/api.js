@@ -162,8 +162,11 @@ const WeatherAPI = {
         const url = `${this.workerUrl}/taf?ids=${station}&format=json`;
 
         try {
+            Utils.log(`Attempting to fetch TAF for ${station}...`, 'info');
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
+
+            Utils.log(`TAF response received: ${JSON.stringify(data).substring(0, 200)}`, 'info');
 
             if (data && data.length > 0) {
                 this.cache.taf = data[0];
@@ -179,12 +182,14 @@ const WeatherAPI = {
             if (nearestTaf) {
                 this.cache.taf = nearestTaf;
                 this.cache.lastTafFetch = new Date();
+                Utils.log(`Using nearby TAF from ${nearestTaf.icaoId}`, 'info');
                 return nearestTaf;
             }
 
             throw new Error('No TAF data available');
         } catch (error) {
             Utils.log(`Failed to fetch TAF: ${error.message}`, 'error');
+            console.error('TAF fetch error details:', error);
 
             // Return cached data if available
             if (this.cache.taf) {

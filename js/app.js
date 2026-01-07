@@ -301,11 +301,20 @@ const App = {
      * Update TAF display
      */
     updateTaf(data) {
-        if (!data) return;
+        if (!data) {
+            Utils.log('No TAF data provided to updateTaf', 'warn');
+            return;
+        }
+
+        Utils.log(`Updating TAF display with data from ${data.icaoId || 'unknown'}`, 'info');
 
         // Parse TAF
         const taf = data.rawTAF ? TafParser.parse(data.rawTAF) : null;
-        if (!taf) return;
+        if (!taf) {
+            Utils.log('Failed to parse TAF data', 'error');
+            console.error('TAF parsing failed for data:', data);
+            return;
+        }
 
         this.state.taf = taf;
 
