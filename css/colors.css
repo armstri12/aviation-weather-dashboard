@@ -1,0 +1,103 @@
+/* Aviation Weather Dashboard - Color System */
+
+:root {
+    /* Flight Category Colors (FAA Standard) */
+    --vfr: #00C853;
+    --vfr-bg: rgba(0, 200, 83, 0.15);
+    --mvfr: #2196F3;
+    --mvfr-bg: rgba(33, 150, 243, 0.15);
+    --ifr: #F44336;
+    --ifr-bg: rgba(244, 67, 54, 0.15);
+    --lifr: #E040FB;
+    --lifr-bg: rgba(224, 64, 251, 0.15);
+
+    /* UI Colors - Dark Aviation Theme */
+    --bg-primary: #0A0E17;
+    --bg-secondary: #131B2E;
+    --bg-tertiary: #1A2540;
+    --border-primary: #1E3A5F;
+    --border-secondary: #2A4A7F;
+
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0AEC0;
+    --text-muted: #6B7A99;
+
+    /* Accent Colors */
+    --accent-cyan: #00D4FF;
+    --accent-blue: #3B82F6;
+    --accent-purple: #8B5CF6;
+
+    /* Status Colors */
+    --success: #4CAF50;
+    --warning: #FFC107;
+    --danger: #FF5252;
+    --info: #29B6F6;
+
+    /* Wind Sock Colors */
+    --windsock-orange: #FF5722;
+    --windsock-white: #FFFFFF;
+
+    /* Chart Colors */
+    --chart-grid: rgba(30, 58, 95, 0.3);
+    --chart-line: rgba(0, 212, 255, 0.5);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 400ms ease;
+}
+
+/* Flight Category Classes */
+.category-vfr {
+    background-color: var(--vfr-bg);
+    border-color: var(--vfr);
+    color: var(--vfr);
+}
+
+.category-mvfr {
+    background-color: var(--mvfr-bg);
+    border-color: var(--mvfr);
+    color: var(--mvfr);
+}
+
+.category-ifr {
+    background-color: var(--ifr-bg);
+    border-color: var(--ifr);
+    color: var(--ifr);
+}
+
+.category-lifr {
+    background-color: var(--lifr-bg);
+    border-color: var(--lifr);
+    color: var(--lifr);
+}
+
+/* Text glow effects for flight categories */
+.glow-vfr {
+    text-shadow: 0 0 10px var(--vfr), 0 0 20px var(--vfr), 0 0 30px var(--vfr);
+}
+
+.glow-mvfr {
+    text-shadow: 0 0 10px var(--mvfr), 0 0 20px var(--mvfr), 0 0 30px var(--mvfr);
+}
+
+.glow-ifr {
+    text-shadow: 0 0 10px var(--ifr), 0 0 20px var(--ifr), 0 0 30px var(--ifr);
+}
+
+.glow-lifr {
+    text-shadow: 0 0 10px var(--lifr), 0 0 20px var(--lifr), 0 0 30px var(--lifr);
+}

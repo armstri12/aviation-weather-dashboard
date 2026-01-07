@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUGN Aviation Weather Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/colors.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="airport-id">KUGN</h1>
+                <span class="airport-name">Waukegan National Airport</span>
+            </div>
+            <div class="header-center">
+                <div class="flight-category" id="flightCategory">
+                    <span class="category-label">VFR</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="update-info">
+                    <span class="update-label">Last Update</span>
+                    <span class="update-time" id="updateTime">--:--Z</span>
+                </div>
+                <div class="clock">
+                    <span class="clock-zulu" id="clockZulu">00:00:00Z</span>
+                    <span class="clock-local" id="clockLocal">00:00 Local</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="main-grid">
+            <!-- Left Panel: Airport Diagram -->
+            <section class="panel panel-airport">
+                <div class="panel-header">
+                    <h2>Airport Diagram</h2>
+                    <span class="wind-summary" id="windSummary">---° @ -- KT</span>
+                </div>
+                <div class="panel-content">
+                    <div class="airport-diagram" id="airportDiagram">
+                        <!-- SVG Airport Diagram -->
+                        <svg viewBox="0 0 400 400" class="runway-svg" id="runwaySvg">
+                            <!-- Background -->
+                            <defs>
+                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(30, 58, 95, 0.3)" stroke-width="0.5"/>
+                                </pattern>
+                                <marker id="windArrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                                    <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#00D4FF"/>
+                                </marker>
+                            </defs>
+                            <rect width="400" height="400" fill="url(#grid)"/>
+
+                            <!-- Runway 05/23 (Primary) -->
+                            <g class="runway runway-05-23" transform="rotate(54, 200, 200)">
+                                <rect x="185" y="60" width="30" height="280" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
+                                <line x1="200" y1="70" x2="200" y2="330" stroke="#fff" stroke-width="2" stroke-dasharray="20,10"/>
+                                <!-- Runway numbers -->
+                                <text x="200" y="55" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">05</text>
+                                <text x="200" y="360" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">23</text>
+                                <!-- ILS indicator -->
+                                <rect x="175" y="320" width="50" height="4" fill="#00D4FF"/>
+                            </g>
+
+                            <!-- Runway 14/32 -->
+                            <g class="runway runway-14-32" transform="rotate(144, 200, 200)">
+                                <rect x="190" y="120" width="20" height="160" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
+                                <line x1="200" y1="130" x2="200" y2="270" stroke="#fff" stroke-width="1.5" stroke-dasharray="15,8"/>
+                                <!-- Runway numbers -->
+                                <text x="200" y="110" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">14</text>
+                                <text x="200" y="295" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">32</text>
+                            </g>
+
+                            <!-- Wind Arrow -->
+                            <g id="windArrowGroup" class="wind-arrow">
+                                <line id="windLine" x1="200" y1="200" x2="200" y2="80" stroke="#00D4FF" stroke-width="4" marker-end="url(#windArrow)"/>
+                            </g>
+
+                            <!-- Wind Sock -->
+                            <g class="wind-sock" transform="translate(320, 80)">
+                                <circle cx="0" cy="0" r="25" fill="rgba(19, 27, 46, 0.9)" stroke="#1E3A5F" stroke-width="2"/>
+                                <g id="windSock">
+                                    <polygon points="0,-8 25,0 0,8" fill="#FF5722"/>
+                                    <line x1="0" y1="0" x2="25" y2="0" stroke="#fff" stroke-width="1"/>
+                                </g>
+                            </g>
+
+                            <!-- Center marker -->
+                            <circle cx="200" cy="200" r="5" fill="#00D4FF" opacity="0.5"/>
+                        </svg>
+                    </div>
+
+                    <!-- Crosswind Analysis -->
+                    <div class="crosswind-analysis">
+                        <h3>Crosswind Analysis</h3>
+                        <div class="crosswind-table">
+                            <div class="crosswind-row" id="crosswind-05-23">
+                                <span class="runway-label">RWY 05/23</span>
+                                <div class="crosswind-bar">
+                                    <div class="crosswind-fill" id="xwind-bar-05"></div>
+                                </div>
+                                <span class="crosswind-value" id="xwind-05">-- KT</span>
+                                <span class="crosswind-status" id="xwind-status-05">--</span>
+                            </div>
+                            <div class="crosswind-row" id="crosswind-14-32">
+                                <span class="runway-label">RWY 14/32</span>
+                                <div class="crosswind-bar">
+                                    <div class="crosswind-fill" id="xwind-bar-14"></div>
+                                </div>
+                                <span class="crosswind-value" id="xwind-14">-- KT</span>
+                                <span class="crosswind-status" id="xwind-status-14">--</span>
+                            </div>
+                        </div>
+                        <div class="recommended-runway" id="recommendedRunway">
+                            <span class="label">Recommended:</span>
+                            <span class="value">--</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Center Panel: Current Conditions -->
+            <section class="panel panel-conditions">
+                <div class="panel-header">
+                    <h2>Current Conditions</h2>
+                    <span class="metar-age" id="metarAge">-- min ago</span>
+                </div>
+                <div class="panel-content">
+                    <!-- Primary Weather Data -->
+                    <div class="conditions-primary">
+                        <div class="condition-item condition-ceiling">
+                            <span class="condition-label">Ceiling</span>
+                            <span class="condition-value" id="ceiling">----</span>
+                            <span class="condition-unit">FT AGL</span>
+                        </div>
+                        <div class="condition-item condition-visibility">
+                            <span class="condition-label">Visibility</span>
+                            <span class="condition-value" id="visibility">--</span>
+                            <span class="condition-unit">SM</span>
+                        </div>
+                        <div class="condition-item condition-wind">
+                            <span class="condition-label">Wind</span>
+                            <span class="condition-value" id="wind">---° @ --</span>
+                            <span class="condition-unit">KT</span>
+                        </div>
+                        <div class="condition-item condition-gusts" id="gustsContainer">
+                            <span class="condition-label">Gusts</span>
+                            <span class="condition-value" id="gusts">--</span>
+                            <span class="condition-unit">KT</span>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Weather Data -->
+                    <div class="conditions-secondary">
+                        <div class="condition-row">
+                            <span class="label">Altimeter</span>
+                            <span class="value" id="altimeter">--.--</span>
+                            <span class="unit">inHg</span>
+                        </div>
+                        <div class="condition-row">
+                            <span class="label">Temperature</span>
+                            <span class="value" id="temperature">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <div class="condition-row">
+                            <span class="label">Dewpoint</span>
+                            <span class="value" id="dewpoint">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <div class="condition-row">
+                            <span class="label">Density Alt</span>
+                            <span class="value" id="densityAlt">----</span>
+                            <span class="unit">FT</span>
+                        </div>
+                        <div class="condition-row">
+                            <span class="label">Weather</span>
+                            <span class="value weather-phenomena" id="weather">CLR</span>
+                        </div>
+                    </div>
+
+                    <!-- VFR Minimums Check -->
+                    <div class="vfr-check" id="vfrCheck">
+                        <div class="vfr-status">
+                            <span class="vfr-icon">✓</span>
+                            <span class="vfr-text">VFR Minimums Met</span>
+                        </div>
+                        <div class="vfr-details">
+                            Class D: 1000 ft ceiling, 3 SM visibility
+                        </div>
+                    </div>
+
+                    <!-- Raw METAR -->
+                    <div class="raw-metar">
+                        <h3>Raw METAR</h3>
+                        <code id="rawMetar">Loading...</code>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Weather Maps -->
+            <section class="panel panel-maps">
+                <div class="panel-header">
+                    <h2>Weather Imagery</h2>
+                    <div class="map-tabs">
+                        <button class="map-tab active" data-map="radar">Radar</button>
+                        <button class="map-tab" data-map="satellite">Satellite</button>
+                        <button class="map-tab" data-map="surface">Surface</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="map-container">
+                        <div class="map-frame" id="radarMap">
+                            <img src="https://radar.weather.gov/ridge/standard/KLOT_loop.gif" alt="Chicago Area Radar" id="radarImg">
+                            <div class="map-label">Chicago Area Radar (KLOT)</div>
+                        </div>
+                        <div class="map-frame hidden" id="satelliteMap">
+                            <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/umv/GEOCOLOR/600x600.jpg" alt="GOES-16 Satellite" id="satelliteImg">
+                            <div class="map-label">GOES-16 Upper Midwest</div>
+                        </div>
+                        <div class="map-frame hidden" id="surfaceMap">
+                            <img src="https://aviationweather.gov/data/products/progs/F006_wpc_sfc.gif" alt="Surface Analysis" id="surfaceImg">
+                            <div class="map-label">Surface Analysis</div>
+                        </div>
+                    </div>
+
+                    <!-- SIGMET/AIRMET Status -->
+                    <div class="hazard-status">
+                        <h3>Hazardous Weather</h3>
+                        <div class="hazard-indicators" id="hazardIndicators">
+                            <div class="hazard-item" id="sigmetStatus">
+                                <span class="hazard-icon">⚠</span>
+                                <span class="hazard-label">SIGMET</span>
+                                <span class="hazard-value none">None</span>
+                            </div>
+                            <div class="hazard-item" id="airmetStatus">
+                                <span class="hazard-icon">△</span>
+                                <span class="hazard-label">AIRMET</span>
+                                <span class="hazard-value none">None</span>
+                            </div>
+                            <div class="hazard-item" id="tfrStatus">
+                                <span class="hazard-icon">⊘</span>
+                                <span class="hazard-label">TFR</span>
+                                <span class="hazard-value none">None</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- TAF Timeline -->
+        <section class="panel panel-taf">
+            <div class="panel-header">
+                <h2>TAF Forecast</h2>
+                <span class="taf-validity" id="tafValidity">Valid: --/--Z to --/--Z</span>
+            </div>
+            <div class="panel-content">
+                <div class="taf-timeline-container">
+                    <canvas id="tafTimeline"></canvas>
+                </div>
+                <div class="taf-details" id="tafDetails">
+                    <div class="taf-raw">
+                        <h3>Raw TAF</h3>
+                        <code id="rawTaf">Loading...</code>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Links Footer -->
+        <footer class="quick-links">
+            <a href="https://aviationweather.gov/gfa/#obs" target="_blank" class="quick-link">
+                <span class="link-icon">📊</span>
+                <span class="link-label">GFA Tool</span>
+            </a>
+            <a href="https://aviationweather.gov/progchart/sfc" target="_blank" class="quick-link">
+                <span class="link-icon">🗺</span>
+                <span class="link-label">Prog Charts</span>
+            </a>
+            <a href="https://aviationweather.gov/sigmet" target="_blank" class="quick-link">
+                <span class="link-icon">⚡</span>
+                <span class="link-label">SIGMETs</span>
+            </a>
+            <a href="https://aviationweather.gov/airmet" target="_blank" class="quick-link">
+                <span class="link-icon">△</span>
+                <span class="link-label">AIRMETs</span>
+            </a>
+            <a href="https://aviationweather.gov/windtemp" target="_blank" class="quick-link">
+                <span class="link-icon">💨</span>
+                <span class="link-label">Winds Aloft</span>
+            </a>
+            <a href="https://tfr.faa.gov/tfr2/list.html" target="_blank" class="quick-link">
+                <span class="link-icon">🚫</span>
+                <span class="link-label">TFRs</span>
+            </a>
+            <a href="https://notams.faa.gov/dinsQueryWeb/" target="_blank" class="quick-link">
+                <span class="link-icon">📋</span>
+                <span class="link-label">NOTAMs</span>
+            </a>
+            <a href="https://skyvector.com/?ll=42.42194444,-87.86777778&chart=301&zoom=2" target="_blank" class="quick-link">
+                <span class="link-icon">🧭</span>
+                <span class="link-label">SkyVector</span>
+            </a>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/metar-parser.js"></script>
+    <script src="js/taf-parser.js"></script>
+    <script src="js/crosswind.js"></script>
+    <script src="js/airport-diagram.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

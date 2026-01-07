@@ -1,0 +1,236 @@
+/* Aviation Weather Dashboard - Animations */
+
+/* Spin animation for loading */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse animation for warnings */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Glow pulse for flight category */
+@keyframes glowPulse {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.2);
+    }
+}
+
+.flight-category {
+    animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* Wind sock animation */
+@keyframes windSockWave {
+    0%, 100% {
+        transform: rotate(0deg) scaleX(1);
+    }
+    25% {
+        transform: rotate(2deg) scaleX(0.98);
+    }
+    75% {
+        transform: rotate(-2deg) scaleX(0.98);
+    }
+}
+
+#windSock {
+    transform-origin: 0 50%;
+    animation: windSockWave 1s ease-in-out infinite;
+}
+
+/* Wind arrow breathing */
+@keyframes windArrowBreath {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.wind-arrow {
+    animation: windArrowBreath 2s ease-in-out infinite;
+}
+
+/* Crosswind bar fill animation */
+.crosswind-fill {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.3s ease;
+}
+
+/* Panel fade in */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.panel {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.panel:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.panel:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+/* Radar image refresh fade */
+.map-frame img {
+    transition: opacity 0.3s ease;
+}
+
+.map-frame img.refreshing {
+    opacity: 0.5;
+}
+
+/* Quick link hover effect */
+.quick-link {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-link:hover {
+    transform: translateY(-3px);
+}
+
+.quick-link:active {
+    transform: translateY(0);
+}
+
+/* Flight category change animation */
+.flight-category.changing {
+    animation: categoryChange 0.5s ease-out;
+}
+
+@keyframes categoryChange {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Data update flash */
+@keyframes dataUpdate {
+    0% {
+        background-color: var(--accent-cyan);
+        color: var(--bg-primary);
+    }
+    100% {
+        background-color: transparent;
+        color: inherit;
+    }
+}
+
+.data-updated {
+    animation: dataUpdate 0.5s ease-out;
+}
+
+/* Stale data warning blink */
+@keyframes staleWarning {
+    0%, 100% {
+        border-color: var(--warning);
+        box-shadow: 0 0 10px var(--warning);
+    }
+    50% {
+        border-color: transparent;
+        box-shadow: none;
+    }
+}
+
+.panel.stale {
+    animation: staleWarning 1s ease-in-out infinite;
+}
+
+/* Clock tick effect */
+@keyframes clockTick {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.clock-zulu {
+    animation: clockTick 1s step-end infinite;
+}
+
+/* Map tab underline slide */
+.map-tab {
+    position: relative;
+    overflow: hidden;
+}
+
+.map-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent-cyan);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.map-tab.active::after {
+    transform: translateX(0);
+}
+
+/* Runway highlight on hover */
+.runway-svg .runway:hover rect {
+    fill: #3a3a3a;
+    transition: fill 0.2s ease;
+}
+
+/* Smooth scroll for overflow content */
+.panel-content {
+    scroll-behavior: smooth;
+}
+
+/* Condition value number change */
+.condition-value {
+    transition: color 0.3s ease;
+}
+
+/* VFR check status change */
+.vfr-check {
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Hazard indicator active state */
+.hazard-item.has-alert {
+    animation: hazardAlert 1s ease-in-out infinite;
+}
+
+@keyframes hazardAlert {
+    0%, 100% {
+        background-color: var(--bg-primary);
+    }
+    50% {
+        background-color: rgba(255, 193, 7, 0.2);
+    }
+}

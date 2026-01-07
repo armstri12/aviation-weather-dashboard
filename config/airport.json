@@ -1,0 +1,87 @@
+{
+  "icao": "KUGN",
+  "name": "Waukegan National Airport",
+  "city": "Waukegan",
+  "state": "Illinois",
+  "country": "USA",
+  "elevation": 727,
+  "coordinates": {
+    "latitude": 42.4222,
+    "longitude": -87.8679
+  },
+  "timezone": "America/Chicago",
+  "magneticVariation": -3,
+  "airspaceClass": "D",
+  "runways": [
+    {
+      "id": "05/23",
+      "heading05": 54,
+      "heading23": 234,
+      "length": 8002,
+      "width": 150,
+      "surface": "Asphalt",
+      "lighting": "HIRL",
+      "ils": {
+        "runway": "23",
+        "frequency": "110.3",
+        "identifier": "I-UGN"
+      },
+      "primary": true
+    },
+    {
+      "id": "14/32",
+      "heading14": 144,
+      "heading32": 324,
+      "length": 4000,
+      "width": 75,
+      "surface": "Asphalt",
+      "lighting": "MIRL",
+      "ils": null,
+      "primary": false
+    }
+  ],
+  "frequencies": {
+    "atis": "124.0",
+    "tower": "120.5",
+    "ground": "121.7",
+    "clearanceDelivery": "121.7",
+    "approach": "119.0",
+    "departure": "119.0"
+  },
+  "vfrMinimums": {
+    "ceiling": 1000,
+    "visibility": 3
+  },
+  "aircraft": {
+    "type": "Cessna 172S",
+    "maxDemonstratedCrosswind": 15,
+    "recommendedStudentCrosswind": 10
+  },
+  "nearbyAirports": [
+    {
+      "icao": "KPWK",
+      "name": "Chicago Executive",
+      "distance": 15
+    },
+    {
+      "icao": "KORD",
+      "name": "Chicago O'Hare",
+      "distance": 25
+    },
+    {
+      "icao": "KARR",
+      "name": "Aurora Municipal",
+      "distance": 40
+    }
+  ],
+  "weatherLinks": {
+    "gfa": "https://aviationweather.gov/gfa/#obs",
+    "progCharts": "https://aviationweather.gov/progchart/sfc",
+    "sigmets": "https://aviationweather.gov/sigmet",
+    "airmets": "https://aviationweather.gov/airmet",
+    "windsAloft": "https://aviationweather.gov/windtemp",
+    "tfrs": "https://tfr.faa.gov/tfr2/list.html",
+    "notams": "https://notams.faa.gov/dinsQueryWeb/",
+    "skyvector": "https://skyvector.com/?ll=42.42194444,-87.86777778&chart=301&zoom=2"
+  }
+}

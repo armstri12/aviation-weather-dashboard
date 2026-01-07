@@ -1,0 +1,455 @@
+/* Aviation Weather Dashboard - Component Styles */
+
+/* ==================== Airport Diagram Panel ==================== */
+
+.panel-airport .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.wind-summary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    color: var(--accent-cyan);
+}
+
+.airport-diagram {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+}
+
+.runway-svg {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+}
+
+/* Crosswind Analysis */
+.crosswind-analysis {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.crosswind-analysis h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.crosswind-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.crosswind-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 60px 40px;
+    align-items: center;
+    gap: 12px;
+}
+
+.runway-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.crosswind-bar {
+    height: 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.crosswind-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width var(--transition-normal), background-color var(--transition-normal);
+}
+
+.crosswind-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.crosswind-status {
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.recommended-runway {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recommended-runway .label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.recommended-runway .value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    color: var(--success);
+    font-weight: 600;
+}
+
+/* ==================== Current Conditions Panel ==================== */
+
+.panel-conditions .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.metar-age {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.conditions-primary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.condition-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.condition-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.condition-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.condition-unit {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Secondary Conditions */
+.conditions-secondary {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.condition-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.condition-row:last-child {
+    border-bottom: none;
+}
+
+.condition-row .label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.condition-row .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.condition-row .unit {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.weather-phenomena {
+    padding: 4px 12px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+/* VFR Check */
+.vfr-check {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    border-left: 4px solid var(--success);
+}
+
+.vfr-check.not-met {
+    border-left-color: var(--danger);
+}
+
+.vfr-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.vfr-icon {
+    font-size: 1.5rem;
+    color: var(--success);
+}
+
+.vfr-check.not-met .vfr-icon {
+    color: var(--danger);
+}
+
+.vfr-text {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.vfr-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Raw METAR */
+.raw-metar {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.raw-metar h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.raw-metar code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    word-break: break-all;
+    line-height: 1.6;
+}
+
+/* ==================== Weather Maps Panel ==================== */
+
+.map-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.map-tab {
+    padding: 6px 16px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.map-tab:hover {
+    border-color: var(--accent-cyan);
+    color: var(--text-secondary);
+}
+
+.map-tab.active {
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: var(--bg-primary);
+}
+
+.panel-maps .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.map-container {
+    flex: 1;
+    position: relative;
+    min-height: 300px;
+}
+
+.map-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.map-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--bg-primary);
+}
+
+.map-label {
+    padding: 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+}
+
+/* Hazard Status */
+.hazard-status {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.hazard-status h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.hazard-indicators {
+    display: flex;
+    gap: 16px;
+}
+
+.hazard-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.hazard-icon {
+    font-size: 1.5rem;
+}
+
+.hazard-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hazard-value {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.hazard-value.none {
+    color: var(--success);
+}
+
+.hazard-value.active {
+    color: var(--warning);
+}
+
+/* ==================== TAF Timeline ==================== */
+
+.taf-raw h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.taf-raw code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    word-break: break-word;
+    line-height: 1.6;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* ==================== Loading & Error States ==================== */
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-primary);
+    border-top-color: var(--accent-cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.error-message {
+    background: var(--ifr-bg);
+    border: 1px solid var(--ifr);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    color: var(--ifr);
+    text-align: center;
+}
+
+.stale-warning {
+    background: var(--warning);
+    color: var(--bg-primary);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
