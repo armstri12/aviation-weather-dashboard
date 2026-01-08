@@ -6,6 +6,7 @@
 const TafTimeline = {
     chart: null,
     canvas: null,
+    tooltipData: [], // Store metadata for tooltips separately
 
     // Color mapping for flight categories
     categoryColors: {
@@ -66,9 +67,6 @@ const TafTimeline = {
                 responsive: true,
                 maintainAspectRatio: false,
                 indexAxis: 'x',
-                parsing: {
-                    yAxisKey: 'y'
-                },
                 plugins: {
                     legend: {
                         display: false
@@ -81,8 +79,8 @@ const TafTimeline = {
                                 return `${item.label}Z`;
                             },
                             label: (item) => {
-                                const data = item.raw;
-                                if (typeof data === 'object') {
+                                const data = TafTimeline.tooltipData[item.dataIndex];
+                                if (data) {
                                     const lines = [
                                         `Category: ${data.category}`,
                                         `Visibility: ${data.visibility || 'P6'} SM`,
@@ -151,6 +149,9 @@ const TafTimeline = {
 
         console.log('Timeline data generated:', timelineData);
 
+        // Store tooltip data for access in tooltip callbacks
+        this.tooltipData = timelineData.tooltipData;
+
         this.chart.data.labels = timelineData.labels;
         this.chart.data.datasets[0].data = timelineData.values;
         this.chart.data.datasets[0].backgroundColor = timelineData.colors;
@@ -170,9 +171,10 @@ const TafTimeline = {
         const values = [];
         const colors = [];
         const borderColors = [];
+        const tooltipData = [];
 
         if (!taf || !taf.forecast || taf.forecast.length === 0) {
-            return { labels, values, colors, borderColors };
+            return { labels, values, colors, borderColors, tooltipData };
         }
 
         // Generate hourly slots for the next 24 hours
@@ -191,9 +193,11 @@ const TafTimeline = {
                 colors.push(this.categoryColors[category]);
                 borderColors.push(this.categoryColors[category].replace('0.8', '1'));
 
-                // Store detailed data for tooltip
-                values.push({
-                    y: 1,
+                // Simple numeric value for chart
+                values.push(1);
+
+                // Store detailed data for tooltip separately
+                tooltipData.push({
                     category: category,
                     visibility: forecastGroup.visibility,
                     wind: forecastGroup.wind,
@@ -206,8 +210,8 @@ const TafTimeline = {
                 // Default to VFR if no forecast
                 colors.push(this.categoryColors['VFR']);
                 borderColors.push(this.categoryColors['VFR'].replace('0.8', '1'));
-                values.push({
-                    y: 1,
+                values.push(1);
+                tooltipData.push({
                     category: 'VFR',
                     visibility: 'P6',
                     windStr: 'N/A'
@@ -215,7 +219,7 @@ const TafTimeline = {
             }
         }
 
-        return { labels, values, colors, borderColors };
+        return { labels, values, colors, borderColors, tooltipData };
     },
 
     /**
