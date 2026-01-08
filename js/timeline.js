@@ -25,11 +25,21 @@ const TafTimeline = {
             return;
         }
 
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js library not loaded! Cannot create TAF timeline');
+            return;
+        }
+
+        console.log('TAF Timeline initializing with canvas:', this.canvas);
+        console.log('Canvas parent dimensions:', this.canvas.parentElement?.offsetWidth, 'x', this.canvas.parentElement?.offsetHeight);
+
         // Set up Chart.js defaults for dark theme
         Chart.defaults.color = '#A0AEC0';
         Chart.defaults.borderColor = 'rgba(30, 58, 95, 0.5)';
 
         this.createChart();
+        console.log('TAF Timeline chart created successfully:', !!this.chart);
     },
 
     /**
