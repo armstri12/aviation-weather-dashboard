@@ -43,6 +43,69 @@ const TafTimeline = {
         console.log('TAF Timeline chart created successfully:', !!this.chart);
     },
 
+    // Custom plugin to draw data labels on bars
+    dataLabelPlugin: {
+        id: 'tafDataLabels',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+
+            if (!meta.data || meta.data.length === 0) return;
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FFFFFF';
+
+            meta.data.forEach((bar, index) => {
+                const data = TafTimeline.tooltipData[index];
+                if (!data) return;
+
+                const x = bar.x;
+                const y = bar.y;
+                const barHeight = bar.height;
+                const barWidth = bar.width;
+
+                // Only draw labels if bar is wide enough
+                if (barWidth < 20) return;
+
+                // Calculate font size based on bar width
+                const fontSize = Math.min(10, Math.max(7, barWidth / 4));
+                ctx.font = `${fontSize}px 'JetBrains Mono', monospace`;
+
+                // Draw visibility at top of bar
+                if (data.visibility !== null && data.visibility !== undefined) {
+                    const visStr = data.visibility === 'P6' || data.visibility >= 6 ? '6+' : String(data.visibility);
+                    ctx.fillText(visStr + 'SM', x, y + 12);
+                }
+
+                // Draw wind in middle
+                if (data.wind && data.wind.speed) {
+                    const windStr = `${data.wind.speed}${data.wind.gust ? 'G' + data.wind.gust : ''}`;
+                    ctx.fillText(windStr, x, y + barHeight / 2);
+                }
+
+                // Draw ceiling near bottom (if exists)
+                if (data.ceiling) {
+                    const ceilStr = data.ceiling >= 10000 ? '10k+' :
+                                   data.ceiling >= 1000 ? (data.ceiling / 1000).toFixed(1) + 'k' :
+                                   String(data.ceiling);
+                    ctx.fillText(ceilStr, x, y + barHeight - 20);
+                }
+
+                // Draw weather phenomena at bottom
+                if (data.weather && data.weather.length > 0) {
+                    const wxStr = data.weather[0].substring(0, 4); // Abbreviate
+                    ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
+                    ctx.fillStyle = '#FFD700'; // Gold for weather
+                    ctx.fillText(wxStr, x, y + barHeight - 6);
+                    ctx.fillStyle = '#FFFFFF';
+                }
+            });
+
+            ctx.restore();
+        }
+    },
+
     /**
      * Create the initial chart
      */
@@ -63,6 +126,7 @@ const TafTimeline = {
                     categoryPercentage: 1
                 }]
             },
+            plugins: [this.dataLabelPlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
