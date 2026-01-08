@@ -67,24 +67,24 @@
                             </defs>
                             <rect width="400" height="400" fill="url(#grid)"/>
 
-                            <!-- Runway 05/23 (Primary) -->
-                            <g class="runway runway-05-23" transform="rotate(54, 200, 200)">
+                            <!-- Runway 05/23 (Primary) - heading 050°/230° -->
+                            <g class="runway runway-05-23" transform="rotate(50, 200, 200)">
                                 <rect x="185" y="60" width="30" height="280" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
                                 <line x1="200" y1="70" x2="200" y2="330" stroke="#fff" stroke-width="2" stroke-dasharray="20,10"/>
-                                <!-- Runway numbers -->
-                                <text x="200" y="55" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">05</text>
-                                <text x="200" y="360" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">23</text>
-                                <!-- ILS indicator -->
-                                <rect x="175" y="320" width="50" height="4" fill="#00D4FF"/>
+                                <!-- Runway numbers: 23 at NE end, 05 at SW end -->
+                                <text x="200" y="55" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">23</text>
+                                <text x="200" y="360" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">05</text>
+                                <!-- ILS indicator on RWY 23 -->
+                                <rect x="175" y="65" width="50" height="4" fill="#00D4FF"/>
                             </g>
 
-                            <!-- Runway 14/32 -->
-                            <g class="runway runway-14-32" transform="rotate(144, 200, 200)">
+                            <!-- Runway 14/32 - heading 140°/320° -->
+                            <g class="runway runway-14-32" transform="rotate(140, 200, 200)">
                                 <rect x="190" y="120" width="20" height="160" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
                                 <line x1="200" y1="130" x2="200" y2="270" stroke="#fff" stroke-width="1.5" stroke-dasharray="15,8"/>
-                                <!-- Runway numbers -->
-                                <text x="200" y="110" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">14</text>
-                                <text x="200" y="295" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">32</text>
+                                <!-- Runway numbers: 32 at NW end, 14 at SE end -->
+                                <text x="200" y="110" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">32</text>
+                                <text x="200" y="295" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">14</text>
                             </g>
 
                             <!-- Wind Arrow -->
@@ -285,23 +285,23 @@
 
         <!-- Quick Links Footer -->
         <footer class="quick-links">
-            <a href="https://aviationweather.gov/gfa/#obs" target="_blank" class="quick-link">
+            <a href="https://aviationweather.gov/gfa/" target="_blank" class="quick-link">
                 <span class="link-icon">📊</span>
                 <span class="link-label">GFA Tool</span>
             </a>
-            <a href="https://aviationweather.gov/progchart/sfc" target="_blank" class="quick-link">
+            <a href="https://aviationweather.gov/progchart" target="_blank" class="quick-link">
                 <span class="link-icon">🗺</span>
                 <span class="link-label">Prog Charts</span>
             </a>
-            <a href="https://aviationweather.gov/sigmet" target="_blank" class="quick-link">
+            <a href="https://aviationweather.gov/sigmet/" target="_blank" class="quick-link">
                 <span class="link-icon">⚡</span>
                 <span class="link-label">SIGMETs</span>
             </a>
-            <a href="https://aviationweather.gov/airmet" target="_blank" class="quick-link">
+            <a href="https://aviationweather.gov/gairmet/" target="_blank" class="quick-link">
                 <span class="link-icon">△</span>
                 <span class="link-label">AIRMETs</span>
             </a>
-            <a href="https://aviationweather.gov/windtemp" target="_blank" class="quick-link">
+            <a href="https://aviationweather.gov/data/windtemp/" target="_blank" class="quick-link">
                 <span class="link-icon">💨</span>
                 <span class="link-label">Winds Aloft</span>
             </a>
@@ -309,7 +309,7 @@
                 <span class="link-icon">🚫</span>
                 <span class="link-label">TFRs</span>
             </a>
-            <a href="https://notams.faa.gov/dinsQueryWeb/" target="_blank" class="quick-link">
+            <a href="https://notams.aim.faa.gov/notamSearch/" target="_blank" class="quick-link">
                 <span class="link-icon">📋</span>
                 <span class="link-label">NOTAMs</span>
             </a>

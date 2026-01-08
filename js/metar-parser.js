@@ -195,6 +195,25 @@ const MetarParser = {
 
         // Enhance with API data if available
         if (metar && json) {
+            // Extract time from API response if not in raw METAR
+            if (!metar.time && json.obsTime) {
+                // obsTime is Unix timestamp in seconds
+                const obsDate = new Date(json.obsTime * 1000);
+                const day = String(obsDate.getUTCDate()).padStart(2, '0');
+                const hour = String(obsDate.getUTCHours()).padStart(2, '0');
+                const min = String(obsDate.getUTCMinutes()).padStart(2, '0');
+                metar.time = `${day}${hour}${min}`;
+                metar.observationTime = obsDate;
+            } else if (!metar.time && json.reportTime) {
+                // reportTime is ISO date string
+                const obsDate = new Date(json.reportTime);
+                const day = String(obsDate.getUTCDate()).padStart(2, '0');
+                const hour = String(obsDate.getUTCHours()).padStart(2, '0');
+                const min = String(obsDate.getUTCMinutes()).padStart(2, '0');
+                metar.time = `${day}${hour}${min}`;
+                metar.observationTime = obsDate;
+            }
+
             if (json.temp !== undefined) metar.temperature = json.temp;
             if (json.dewp !== undefined) metar.dewpoint = json.dewp;
             if (json.wdir !== undefined) metar.wind.direction = json.wdir;
