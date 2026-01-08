@@ -143,8 +143,10 @@ const TafTimeline = {
         this.chart.data.datasets[0].backgroundColor = timelineData.colors;
         this.chart.data.datasets[0].borderColor = timelineData.borderColors;
 
-        this.chart.update('none');
-        console.log('TAF Timeline chart updated');
+        // Force resize to ensure canvas has proper dimensions
+        this.chart.resize();
+        this.chart.update();
+        console.log('TAF Timeline chart updated and resized');
     },
 
     /**
