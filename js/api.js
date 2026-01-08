@@ -123,7 +123,18 @@ const WeatherAPI = {
 
                 try {
                     const response = await this.fetchWithRetry(url);
-                    const data = await response.json();
+
+                    // Get text first to handle empty responses
+                    const text = await response.text();
+                    let data = null;
+
+                    if (text && text.trim().length > 0) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (parseError) {
+                            Utils.log(`Failed to parse bbox TAF JSON: ${parseError.message}`, 'warn');
+                        }
+                    }
 
                     if (data && data.length > 0) {
                         // Filter out the original airport and calculate distances
@@ -164,9 +175,19 @@ const WeatherAPI = {
         try {
             Utils.log(`Attempting to fetch TAF for ${station}...`, 'info');
             const response = await this.fetchWithRetry(url);
-            const data = await response.json();
 
-            Utils.log(`TAF response received: ${JSON.stringify(data).substring(0, 200)}`, 'info');
+            // Get response text first to check if it's empty
+            const text = await response.text();
+            Utils.log(`TAF response text (first 200 chars): ${text.substring(0, 200)}`, 'info');
+
+            let data = null;
+            if (text && text.trim().length > 0) {
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    Utils.log(`Failed to parse TAF JSON: ${parseError.message}`, 'warn');
+                }
+            }
 
             if (data && data.length > 0) {
                 this.cache.taf = data[0];
@@ -188,6 +209,22 @@ const WeatherAPI = {
 
             throw new Error('No TAF data available');
         } catch (error) {
+            // If error is JSON parse related, try fallback
+            if (error.message && error.message.includes('JSON')) {
+                Utils.log(`JSON parse error, trying fallback search...`, 'warn');
+                try {
+                    const nearestTaf = await this.findNearestTaf(station);
+                    if (nearestTaf) {
+                        this.cache.taf = nearestTaf;
+                        this.cache.lastTafFetch = new Date();
+                        Utils.log(`Using nearby TAF from ${nearestTaf.icaoId}`, 'info');
+                        return nearestTaf;
+                    }
+                } catch (fallbackError) {
+                    Utils.log(`Fallback also failed: ${fallbackError.message}`, 'error');
+                }
+            }
+
             Utils.log(`Failed to fetch TAF: ${error.message}`, 'error');
             console.error('TAF fetch error details:', error);
 
