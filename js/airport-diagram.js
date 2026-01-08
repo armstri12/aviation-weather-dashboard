@@ -49,8 +49,9 @@ const AirportDiagram = {
                 this.animateVariableWind();
             } else {
                 this.elements.windArrowGroup.style.opacity = '1';
-                // Wind arrow points FROM direction, so rotate to show where wind comes from
-                const rotation = direction;
+                // Wind arrow points in direction wind is BLOWING (add 180 to show flow direction)
+                // Wind reported as FROM, so arrow shows where it's going TO
+                const rotation = (direction + 180) % 360;
                 this.elements.windArrowGroup.style.transform = `rotate(${rotation}deg)`;
                 this.elements.windArrowGroup.style.transformOrigin = '200px 200px';
             }

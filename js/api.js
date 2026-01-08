@@ -314,7 +314,7 @@ const WeatherAPI = {
      */
     getSurfaceUrl() {
         const timestamp = Date.now();
-        return `https://aviationweather.gov/data/products/progs/F006_wpc_sfc.gif?t=${timestamp}`;
+        return `https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif?t=${timestamp}`;
     },
 
     /**
