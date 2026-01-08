@@ -139,8 +139,13 @@ const TafTimeline = {
                         callbacks: {
                             title: (items) => {
                                 if (items.length === 0) return '';
-                                const item = items[0];
-                                return `${item.label}Z`;
+                                const data = TafTimeline.tooltipData[items[0].dataIndex];
+                                if (data) {
+                                    const zuluStr = String(data.zuluHour).padStart(2, '0') + ':00Z';
+                                    const localStr = String(data.localHour).padStart(2, '0') + ':00 CST';
+                                    return `${zuluStr} (${localStr})`;
+                                }
+                                return items[0].label;
                             },
                             label: (item) => {
                                 const data = TafTimeline.tooltipData[item.dataIndex];
@@ -244,13 +249,17 @@ const TafTimeline = {
         // Generate hourly slots for the next 24 hours
         const now = new Date();
         const currentHour = now.getUTCHours();
+        const cstOffset = -6; // CST is UTC-6 (adjust for CDT if needed)
 
         for (let i = 0; i < 24; i++) {
-            const hour = (currentHour + i) % 24;
-            labels.push(String(hour).padStart(2, '0'));
+            const zuluHour = (currentHour + i) % 24;
+            const localHour = (zuluHour + 24 + cstOffset) % 24;
+
+            // Create label showing Zulu time
+            labels.push(String(zuluHour).padStart(2, '0') + 'Z');
 
             // Find applicable forecast for this hour
-            const forecastGroup = this.getForecastForHour(taf, hour, i);
+            const forecastGroup = this.getForecastForHour(taf, zuluHour, i);
 
             if (forecastGroup) {
                 const category = forecastGroup.flightCategory || 'VFR';
@@ -262,6 +271,8 @@ const TafTimeline = {
 
                 // Store detailed data for tooltip separately
                 tooltipData.push({
+                    zuluHour: zuluHour,
+                    localHour: localHour,
                     category: category,
                     visibility: forecastGroup.visibility,
                     wind: forecastGroup.wind,
@@ -276,6 +287,8 @@ const TafTimeline = {
                 borderColors.push(this.categoryColors['VFR'].replace('0.8', '1'));
                 values.push(1);
                 tooltipData.push({
+                    zuluHour: zuluHour,
+                    localHour: localHour,
                     category: 'VFR',
                     visibility: 'P6',
                     windStr: 'N/A'
