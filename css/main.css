@@ -176,14 +176,12 @@ html, body {
     min-height: 150px;
     height: 200px;
     position: relative;
-    background: rgba(255, 0, 0, 0.1); /* Debug: red tint to see container */
 }
 
 .taf-timeline-container canvas {
     display: block !important;
     width: 100% !important;
     height: 100% !important;
-    background: rgba(0, 255, 0, 0.05); /* Debug: green tint to see canvas */
 }
 
 .taf-details {
