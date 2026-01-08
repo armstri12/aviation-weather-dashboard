@@ -55,7 +55,20 @@ const WeatherAPI = {
 
         try {
             const response = await this.fetchWithRetry(url);
-            const data = await response.json();
+
+            // Get response text first to check if it's empty
+            const text = await response.text();
+            Utils.log(`METAR response text (first 200 chars): ${text.substring(0, 200)}`, 'info');
+
+            let data = null;
+            if (text && text.trim().length > 0) {
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    Utils.log(`Failed to parse METAR JSON: ${parseError.message}`, 'warn');
+                    throw new Error(`JSON parse error: ${parseError.message}`);
+                }
+            }
 
             if (data && data.length > 0) {
                 this.cache.metar = data[0];
@@ -67,6 +80,7 @@ const WeatherAPI = {
             throw new Error('No METAR data returned');
         } catch (error) {
             Utils.log(`Failed to fetch METAR: ${error.message}`, 'error');
+            console.error('METAR fetch error details:', error);
 
             // Return cached data if available
             if (this.cache.metar) {
