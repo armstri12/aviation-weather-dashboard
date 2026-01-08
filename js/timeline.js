@@ -66,6 +66,9 @@ const TafTimeline = {
                 responsive: true,
                 maintainAspectRatio: false,
                 indexAxis: 'x',
+                parsing: {
+                    yAxisKey: 'y'
+                },
                 plugins: {
                     legend: {
                         display: false
