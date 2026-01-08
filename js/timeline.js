@@ -126,9 +126,17 @@ const TafTimeline = {
      * Update the timeline with TAF data
      */
     update(taf) {
-        if (!this.chart || !taf) return;
+        if (!this.chart || !taf) {
+            console.error('TAF Timeline update failed:', { hasChart: !!this.chart, hasTaf: !!taf });
+            return;
+        }
+
+        console.log('TAF Timeline updating with:', taf);
+        console.log('TAF forecast array:', taf.forecast);
 
         const timelineData = this.generateTimelineData(taf);
+
+        console.log('Timeline data generated:', timelineData);
 
         this.chart.data.labels = timelineData.labels;
         this.chart.data.datasets[0].data = timelineData.values;
@@ -136,6 +144,7 @@ const TafTimeline = {
         this.chart.data.datasets[0].borderColor = timelineData.borderColors;
 
         this.chart.update('none');
+        console.log('TAF Timeline chart updated');
     },
 
     /**
