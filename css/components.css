@@ -114,26 +114,26 @@
 .panel-conditions .panel-content {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .metar-age {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
 .conditions-primary {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 8px;
 }
 
 .condition-item {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
-    padding: 12px 16px;
+    padding: 8px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -141,42 +141,42 @@
 }
 
 .condition-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .condition-value {
     font-family: 'Orbitron', monospace;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.1;
 }
 
 .condition-unit {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     color: var(--text-secondary);
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 /* Secondary Conditions */
 .conditions-secondary {
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .condition-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 4px 0;
     border-bottom: 1px solid var(--border-primary);
 }
 
@@ -185,24 +185,24 @@
 }
 
 .condition-row .label {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
 .condition-row .value {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     color: var(--text-primary);
 }
 
 .condition-row .unit {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
-    margin-left: 4px;
+    margin-left: 3px;
 }
 
 .weather-phenomena {
-    padding: 4px 12px;
+    padding: 3px 8px;
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
 }
@@ -211,8 +211,8 @@
 .vfr-check {
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
-    padding: 12px;
-    border-left: 4px solid var(--success);
+    padding: 8px;
+    border-left: 3px solid var(--success);
 }
 
 .vfr-check.not-met {
@@ -222,12 +222,12 @@
 .vfr-status {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+    gap: 8px;
+    margin-bottom: 4px;
 }
 
 .vfr-icon {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: var(--success);
 }
 
@@ -237,11 +237,11 @@
 
 .vfr-text {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.85rem;
 }
 
 .vfr-details {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
 }
 
@@ -249,25 +249,25 @@
 .raw-metar {
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 8px;
 }
 
 .raw-metar h3 {
     font-family: 'Orbitron', monospace;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .raw-metar code {
     display: block;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-secondary);
     word-break: break-all;
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
 /* ==================== Weather Maps Panel ==================== */
