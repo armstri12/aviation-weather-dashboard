@@ -167,9 +167,9 @@
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
     padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
 }
 
 .condition-row {
@@ -177,28 +177,23 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 0;
-    border-bottom: 1px solid var(--border-primary);
-}
-
-.condition-row:last-child {
-    border-bottom: none;
 }
 
 .condition-row .label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
 }
 
 .condition-row .value {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: var(--text-primary);
 }
 
 .condition-row .unit {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-secondary);
-    margin-left: 3px;
+    margin-left: 2px;
 }
 
 .weather-phenomena {
