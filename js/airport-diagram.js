@@ -90,17 +90,127 @@ const AirportDiagram = {
             }
 
         } catch (error) {
-            Utils.log(`Failed to load airport chart: ${error.message}`, 'error');
-            console.error('PDF loading error:', error);
+            Utils.log(`Chart unavailable, using windsock overlay only: ${error.message}`, 'warn');
 
-            // Show error message
+            // Hide loading indicator completely - windsock will still work
             if (this.elements.loadingIndicator) {
-                const loadingText = this.elements.loadingIndicator.querySelector('p');
-                if (loadingText) {
-                    loadingText.textContent = 'Failed to load chart. Using fallback view.';
-                }
+                this.elements.loadingIndicator.classList.add('hidden');
             }
+
+            // Draw simple background grid on canvas as fallback
+            this.drawFallbackBackground();
         }
+    },
+
+    /**
+     * Draw fallback background when PDF cannot load
+     */
+    drawFallbackBackground() {
+        if (!this.elements.canvas || !this.elements.context) return;
+
+        const ctx = this.elements.context;
+        const width = 600;
+        const height = 600;
+
+        // Set canvas size
+        this.elements.canvas.width = width;
+        this.elements.canvas.height = height;
+
+        // Dark background
+        ctx.fillStyle = '#0a1628';
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw grid
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.3)';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= width; x += 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+
+        for (let y = 0; y <= height; y += 30) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+
+        // Draw simple runway representation
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        ctx.save();
+
+        // Runway 05/23 (primary) - 50 degrees
+        ctx.translate(centerX, centerY);
+        ctx.rotate((50 * Math.PI) / 180);
+
+        ctx.fillStyle = '#2a2a2a';
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-20, -180, 40, 360);
+        ctx.strokeRect(-20, -180, 40, 360);
+
+        // Centerline
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([20, 10]);
+        ctx.beginPath();
+        ctx.moveTo(0, -170);
+        ctx.lineTo(0, 170);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Runway numbers
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px Orbitron, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('23', 0, -145);
+        ctx.fillText('05', 0, 190);
+
+        ctx.restore();
+
+        // Runway 14/32 - 140 degrees
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate((140 * Math.PI) / 180);
+
+        ctx.fillStyle = '#2a2a2a';
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-15, -100, 30, 200);
+        ctx.strokeRect(-15, -100, 30, 200);
+
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([15, 8]);
+        ctx.beginPath();
+        ctx.moveTo(0, -90);
+        ctx.lineTo(0, 90);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 18px Orbitron, monospace';
+        ctx.fillText('32', 0, -75);
+        ctx.fillText('14', 0, 105);
+
+        ctx.restore();
+
+        // Airport label
+        ctx.fillStyle = '#00D4FF';
+        ctx.font = 'bold 28px Orbitron, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('KUGN', centerX, 50);
+
+        ctx.fillStyle = '#6b8cae';
+        ctx.font = '14px Inter, sans-serif';
+        ctx.fillText('Waukegan National Airport', centerX, 75);
+
+        Utils.log('Fallback diagram drawn', 'info');
     },
 
     /**
@@ -191,13 +301,11 @@ const AirportDiagram = {
             scaleX = 0.3 + (speed - 5) * 0.07;
         }
 
-        // Apply scale to the polygons
+        // Apply scale to the polygons using proper SVG syntax
+        // SVG uses scale(x, y) not scaleX(x)
         const polygons = sock.querySelectorAll('polygon');
         polygons.forEach(polygon => {
-            const currentTransform = polygon.getAttribute('transform') || '';
-            const baseTransform = currentTransform.replace(/scaleX\([^)]*\)/g, '').trim();
-            const newTransform = baseTransform ? `${baseTransform} scaleX(${scaleX})` : `scaleX(${scaleX})`;
-            polygon.setAttribute('transform', newTransform);
+            polygon.setAttribute('transform', `scale(${scaleX}, 1)`);
         });
 
         // Change color based on wind speed and gusts
