@@ -32,7 +32,7 @@ const App = {
         this.startClock();
 
         // Initialize components
-        AirportDiagram.init();
+        await AirportDiagram.init();
         TafTimeline.init();
 
         // Set up map tab switching
