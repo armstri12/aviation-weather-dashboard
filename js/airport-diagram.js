@@ -29,7 +29,8 @@ const AirportDiagram = {
     },
 
     // KUGN airport chart URL (uses latest cycle)
-    chartUrl: 'https://aeronav.faa.gov/d-tpp/2501/05324AD.PDF',
+    // Using CORS proxy to bypass browser security restrictions
+    chartUrl: 'https://corsproxy.io/?https://aeronav.faa.gov/d-tpp/2501/05324AD.PDF',
 
     /**
      * Initialize the airport diagram
@@ -195,7 +196,8 @@ const AirportDiagram = {
         polygons.forEach(polygon => {
             const currentTransform = polygon.getAttribute('transform') || '';
             const baseTransform = currentTransform.replace(/scaleX\([^)]*\)/g, '').trim();
-            polygon.setAttribute('transform', `${baseTransform} scaleX(${scaleX})`);
+            const newTransform = baseTransform ? `${baseTransform} scaleX(${scaleX})` : `scaleX(${scaleX})`;
+            polygon.setAttribute('transform', newTransform);
         });
 
         // Change color based on wind speed and gusts
