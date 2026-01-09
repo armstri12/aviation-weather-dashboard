@@ -1,15 +1,24 @@
 /**
  * Aviation Weather Dashboard - Airport Diagram Controller
- * Handles SVG runway diagram and wind visualization
+ * Handles PDF airport chart rendering and wind visualization
  */
 
 const AirportDiagram = {
-    // SVG element references
+    // Element references
     elements: {
-        svg: null,
-        windArrowGroup: null,
-        windLine: null,
+        canvas: null,
+        context: null,
+        loadingIndicator: null,
+        windsockOverlay: null,
+        windSockGroup: null,
         windSock: null
+    },
+
+    // PDF state
+    pdfState: {
+        document: null,
+        currentCycle: null,
+        loaded: false
     },
 
     // Current wind state
@@ -19,17 +28,108 @@ const AirportDiagram = {
         gust: null
     },
 
+    // KUGN airport chart URL (uses latest cycle)
+    chartUrl: 'https://aeronav.faa.gov/d-tpp/2501/05324AD.PDF',
+
     /**
      * Initialize the airport diagram
      */
-    init() {
-        this.elements.svg = document.getElementById('runwaySvg');
-        this.elements.windArrowGroup = document.getElementById('windArrowGroup');
-        this.elements.windLine = document.getElementById('windLine');
+    async init() {
+        Utils.log('Initializing Airport Diagram...', 'info');
+
+        // Get element references
+        this.elements.canvas = document.getElementById('chartCanvas');
+        this.elements.loadingIndicator = document.getElementById('chartLoading');
+        this.elements.windsockOverlay = document.getElementById('windsockOverlay');
+        this.elements.windSockGroup = document.getElementById('windSockGroup');
         this.elements.windSock = document.getElementById('windSock');
 
-        // Set initial state
+        if (!this.elements.canvas) {
+            Utils.log('Canvas element not found', 'error');
+            return;
+        }
+
+        this.elements.context = this.elements.canvas.getContext('2d');
+
+        // Load and render the PDF chart
+        await this.loadAirportChart();
+
+        // Initialize windsock position
         this.updateWind(0, 0);
+
+        Utils.log('Airport Diagram initialized', 'info');
+    },
+
+    /**
+     * Load the airport chart PDF and render it
+     */
+    async loadAirportChart() {
+        try {
+            Utils.log(`Loading airport chart from ${this.chartUrl}...`, 'info');
+
+            // Show loading indicator
+            if (this.elements.loadingIndicator) {
+                this.elements.loadingIndicator.classList.remove('hidden');
+            }
+
+            // Load the PDF
+            const loadingTask = pdfjsLib.getDocument(this.chartUrl);
+            this.pdfState.document = await loadingTask.promise;
+
+            Utils.log(`PDF loaded successfully (${this.pdfState.document.numPages} pages)`, 'info');
+
+            // Render the first page
+            await this.renderPDFPage(1);
+
+            this.pdfState.loaded = true;
+
+            // Hide loading indicator
+            if (this.elements.loadingIndicator) {
+                this.elements.loadingIndicator.classList.add('hidden');
+            }
+
+        } catch (error) {
+            Utils.log(`Failed to load airport chart: ${error.message}`, 'error');
+            console.error('PDF loading error:', error);
+
+            // Show error message
+            if (this.elements.loadingIndicator) {
+                const loadingText = this.elements.loadingIndicator.querySelector('p');
+                if (loadingText) {
+                    loadingText.textContent = 'Failed to load chart. Using fallback view.';
+                }
+            }
+        }
+    },
+
+    /**
+     * Render a specific page of the PDF to canvas
+     */
+    async renderPDFPage(pageNumber) {
+        try {
+            const page = await this.pdfState.document.getPage(pageNumber);
+
+            // Get viewport at desired scale
+            const viewport = page.getViewport({ scale: 1.5 });
+
+            // Set canvas dimensions
+            this.elements.canvas.width = viewport.width;
+            this.elements.canvas.height = viewport.height;
+
+            // Render the page
+            const renderContext = {
+                canvasContext: this.elements.context,
+                viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+
+            Utils.log(`PDF page ${pageNumber} rendered successfully`, 'info');
+
+        } catch (error) {
+            Utils.log(`Failed to render PDF page: ${error.message}`, 'error');
+            throw error;
+        }
     },
 
     /**
@@ -41,24 +141,8 @@ const AirportDiagram = {
     updateWind(direction, speed, gust = null) {
         this.windState = { direction, speed, gust };
 
-        // Update wind arrow
-        if (this.elements.windArrowGroup) {
-            if (direction === null || direction === 'VRB') {
-                // Variable wind - show spinning indicator
-                this.elements.windArrowGroup.style.opacity = '0.5';
-                this.animateVariableWind();
-            } else {
-                this.elements.windArrowGroup.style.opacity = '1';
-                // Wind arrow points in direction wind is BLOWING (add 180 to show flow direction)
-                // Wind reported as FROM, so arrow shows where it's going TO
-                const rotation = (direction + 180) % 360;
-                this.elements.windArrowGroup.style.transform = `rotate(${rotation}deg)`;
-                this.elements.windArrowGroup.style.transformOrigin = '200px 200px';
-            }
-        }
-
-        // Update wind sock
-        if (this.elements.windSock) {
+        // Update windsock
+        if (this.elements.windSockGroup && this.elements.windSock) {
             this.updateWindSock(direction, speed);
         }
 
@@ -77,22 +161,25 @@ const AirportDiagram = {
                 summaryEl.textContent = text;
             }
         }
-
-        // Scale arrow based on wind speed
-        this.scaleWindArrow(speed, gust);
     },
 
     /**
-     * Update wind sock appearance
+     * Update wind sock appearance and position
      */
     updateWindSock(direction, speed) {
+        const sockGroup = this.elements.windSockGroup;
         const sock = this.elements.windSock;
-        if (!sock) return;
+        if (!sockGroup || !sock) return;
+
+        // Position windsock in top-right corner of overlay
+        const offsetX = 320; // Position from center
+        const offsetY = 80;  // Position from center
+        sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
-        const rotation = direction === 'VRB' || direction === null ? 0 : direction;
-        sock.style.transform = `rotate(${rotation}deg)`;
-        sock.style.transformOrigin = '0 0';
+        // Wind is reported as "from" direction, sock points where wind is blowing TO
+        const rotation = direction === 'VRB' || direction === null ? 0 : (direction + 180) % 360;
+        sock.setAttribute('transform', `rotate(${rotation}, 0, 0)`);
 
         // Scale sock based on wind speed
         // 0-5 kt: limp, 5-15 kt: partial, 15+ kt: full
@@ -103,66 +190,33 @@ const AirportDiagram = {
             scaleX = 0.3 + (speed - 5) * 0.07;
         }
 
-        const polygon = sock.querySelector('polygon');
-        if (polygon) {
-            polygon.style.transform = `scaleX(${scaleX})`;
-            polygon.style.transformOrigin = '0 50%';
-        }
+        // Apply scale to the polygons
+        const polygons = sock.querySelectorAll('polygon');
+        polygons.forEach(polygon => {
+            const currentTransform = polygon.getAttribute('transform') || '';
+            const baseTransform = currentTransform.replace(/scaleX\([^)]*\)/g, '').trim();
+            polygon.setAttribute('transform', `${baseTransform} scaleX(${scaleX})`);
+        });
 
-        // Adjust animation speed based on wind
-        const animationDuration = speed > 0 ? Math.max(0.5, 2 - (speed * 0.05)) : 2;
-        sock.style.animationDuration = `${animationDuration}s`;
-    },
-
-    /**
-     * Scale wind arrow based on speed
-     */
-    scaleWindArrow(speed, gust = null) {
-        if (!this.elements.windLine) return;
-
-        const effectiveSpeed = gust || speed;
-
-        // Scale arrow length: 60-120px based on wind speed
-        const minLength = 60;
-        const maxLength = 120;
-        const length = Math.min(minLength + effectiveSpeed * 3, maxLength);
-
-        const y2 = 200 - length;
-        this.elements.windLine.setAttribute('y2', y2);
-
-        // Change color based on speed
-        if (effectiveSpeed >= 25) {
-            this.elements.windLine.setAttribute('stroke', 'var(--danger)');
-        } else if (effectiveSpeed >= 15) {
-            this.elements.windLine.setAttribute('stroke', 'var(--warning)');
-        } else {
-            this.elements.windLine.setAttribute('stroke', 'var(--accent-cyan)');
-        }
-
-        // Show gust indicator
-        if (gust && gust > speed) {
-            this.elements.windLine.setAttribute('stroke-dasharray', '10,5');
-        } else {
-            this.elements.windLine.removeAttribute('stroke-dasharray');
-        }
-    },
-
-    /**
-     * Animate variable wind indicator
-     */
-    animateVariableWind() {
-        if (!this.elements.windArrowGroup) return;
-
-        let angle = 0;
-        const animate = () => {
-            if (this.windState.direction === 'VRB' || this.windState.direction === null) {
-                angle = (angle + 2) % 360;
-                this.elements.windArrowGroup.style.transform = `rotate(${angle}deg)`;
-                this.elements.windArrowGroup.style.transformOrigin = '200px 200px';
-                requestAnimationFrame(animate);
+        // Change color based on wind speed and gusts
+        const effectiveSpeed = this.windState.gust || speed;
+        const mainPolygon = sock.querySelector('polygon');
+        if (mainPolygon) {
+            if (effectiveSpeed >= 25) {
+                mainPolygon.setAttribute('fill', '#DC143C'); // Red for high winds
+            } else if (effectiveSpeed >= 15) {
+                mainPolygon.setAttribute('fill', '#FFA500'); // Orange for moderate winds
+            } else {
+                mainPolygon.setAttribute('fill', '#FF5722'); // Normal orange
             }
-        };
-        requestAnimationFrame(animate);
+        }
+
+        // Add pulsing animation for gusts
+        if (this.windState.gust && this.windState.gust > speed) {
+            sockGroup.style.animation = 'windSockPulse 1s ease-in-out infinite';
+        } else {
+            sockGroup.style.animation = 'windSockWave 1.5s ease-in-out infinite';
+        }
     },
 
     /**
@@ -194,9 +248,6 @@ const AirportDiagram = {
                 }
             }
         }
-
-        // Highlight best runway on diagram
-        this.highlightRunway(recommended.runway);
     },
 
     /**
@@ -238,28 +289,6 @@ const AirportDiagram = {
                 statusEl.style.color = 'var(--warning)';
             } else {
                 statusEl.style.color = 'var(--danger)';
-            }
-        }
-    },
-
-    /**
-     * Highlight recommended runway on diagram
-     */
-    highlightRunway(runwayNumber) {
-        // Remove existing highlights
-        const allRunways = this.elements.svg.querySelectorAll('.runway rect');
-        allRunways.forEach(rect => {
-            rect.style.filter = '';
-        });
-
-        // Add highlight to recommended runway
-        // This is simplified - in reality you'd highlight the specific runway
-        const runwayPair = ['05', '23'].includes(runwayNumber) ? '05-23' : '14-32';
-        const runwayGroup = this.elements.svg.querySelector(`.runway-${runwayPair}`);
-        if (runwayGroup) {
-            const rect = runwayGroup.querySelector('rect');
-            if (rect) {
-                rect.style.filter = 'drop-shadow(0 0 10px var(--success))';
             }
         }
     }

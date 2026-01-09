@@ -18,6 +18,13 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 </head>
 <body>
     <div class="dashboard">
@@ -54,55 +61,45 @@
                 </div>
                 <div class="panel-content">
                     <div class="airport-diagram" id="airportDiagram">
-                        <!-- SVG Airport Diagram -->
-                        <svg viewBox="0 0 400 400" class="runway-svg" id="runwaySvg">
-                            <!-- Background -->
+                        <!-- PDF Canvas for Airport Chart -->
+                        <div class="chart-container">
+                            <canvas id="chartCanvas"></canvas>
+                            <div class="chart-loading" id="chartLoading">
+                                <div class="loading-spinner"></div>
+                                <p>Loading airport chart...</p>
+                            </div>
+                        </div>
+
+                        <!-- SVG Overlay for Windsock -->
+                        <svg class="windsock-overlay" id="windsockOverlay" viewBox="0 0 400 400">
                             <defs>
-                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(30, 58, 95, 0.3)" stroke-width="0.5"/>
-                                </pattern>
-                                <marker id="windArrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-                                    <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#00D4FF"/>
-                                </marker>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
                             </defs>
-                            <rect width="400" height="400" fill="url(#grid)"/>
 
-                            <!-- Runway 05/23 (Primary) - heading 050°/230° -->
-                            <g class="runway runway-05-23" transform="rotate(50, 200, 200)">
-                                <rect x="185" y="60" width="30" height="280" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
-                                <line x1="200" y1="70" x2="200" y2="330" stroke="#fff" stroke-width="2" stroke-dasharray="20,10"/>
-                                <!-- Runway numbers: 23 at NE end, 05 at SW end -->
-                                <text x="200" y="55" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">23</text>
-                                <text x="200" y="360" text-anchor="middle" fill="#fff" font-family="Orbitron" font-size="18" font-weight="bold">05</text>
-                                <!-- ILS indicator on RWY 23 -->
-                                <rect x="175" y="65" width="50" height="4" fill="#00D4FF"/>
-                            </g>
-
-                            <!-- Runway 14/32 - heading 140°/320° -->
-                            <g class="runway runway-14-32" transform="rotate(140, 200, 200)">
-                                <rect x="190" y="120" width="20" height="160" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
-                                <line x1="200" y1="130" x2="200" y2="270" stroke="#fff" stroke-width="1.5" stroke-dasharray="15,8"/>
-                                <!-- Runway numbers: 32 at NW end, 14 at SE end -->
-                                <text x="200" y="110" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">32</text>
-                                <text x="200" y="295" text-anchor="middle" fill="#aaa" font-family="Orbitron" font-size="14" font-weight="bold">14</text>
-                            </g>
-
-                            <!-- Wind Arrow -->
-                            <g id="windArrowGroup" class="wind-arrow">
-                                <line id="windLine" x1="200" y1="200" x2="200" y2="80" stroke="#00D4FF" stroke-width="4" marker-end="url(#windArrow)"/>
-                            </g>
-
-                            <!-- Wind Sock -->
-                            <g class="wind-sock" transform="translate(320, 80)">
-                                <circle cx="0" cy="0" r="25" fill="rgba(19, 27, 46, 0.9)" stroke="#1E3A5F" stroke-width="2"/>
-                                <g id="windSock">
-                                    <polygon points="0,-8 25,0 0,8" fill="#FF5722"/>
-                                    <line x1="0" y1="0" x2="25" y2="0" stroke="#fff" stroke-width="1"/>
+                            <!-- Wind Sock Group -->
+                            <g class="wind-sock-group" id="windSockGroup">
+                                <g class="wind-sock-container">
+                                    <!-- Glow background -->
+                                    <circle cx="0" cy="0" r="35" fill="rgba(0, 212, 255, 0.1)" filter="url(#glow)"/>
+                                    <!-- Sock circle background -->
+                                    <circle cx="0" cy="0" r="28" fill="rgba(19, 27, 46, 0.95)" stroke="#00D4FF" stroke-width="2"/>
+                                    <!-- Wind sock -->
+                                    <g id="windSock">
+                                        <polygon points="0,-10 35,0 0,10" fill="#FF5722" opacity="0.9"/>
+                                        <polygon points="0,-8 30,0 0,8" fill="#FF6B3D"/>
+                                        <line x1="0" y1="0" x2="30" y2="0" stroke="#FFF" stroke-width="1.5"/>
+                                        <!-- Wind speed rings -->
+                                        <line x1="10" y1="-8" x2="10" y2="8" stroke="#FFF" stroke-width="1" opacity="0.6"/>
+                                        <line x1="20" y1="-8" x2="20" y2="8" stroke="#FFF" stroke-width="1" opacity="0.6"/>
+                                    </g>
                                 </g>
                             </g>
-
-                            <!-- Center marker -->
-                            <circle cx="200" cy="200" r="5" fill="#00D4FF" opacity="0.5"/>
                         </svg>
                     </div>
 
