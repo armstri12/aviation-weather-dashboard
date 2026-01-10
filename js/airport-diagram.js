@@ -43,6 +43,9 @@ const AirportDiagram = {
         airportId: 'KUGN',
         // FAA GeoPDF chart URL (via proxy for CORS)
         chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart/KUGN',
+        vectorSource: 'osm',
+        vectorDataUrl: 'https://overpass-api.de/api/interpreter',
+        vectorCanvasSize: 900,
         // Approximate georeferenced bounds for KUGN airport diagram
         chartBounds: [
             [42.4324, -87.8836],
@@ -50,7 +53,7 @@ const AirportDiagram = {
         ],
         runwayHeading: 50,
         orientation: 'north-up',
-        mapMode: 'chart-only', // chart-only or georeferenced
+        mapMode: 'georeferenced', // chart-only or georeferenced
         chartOpacity: 0.95,
         mapPadding: [20, 20],
         baseMapUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -164,7 +167,7 @@ const AirportDiagram = {
                 this.elements.loadingIndicator.classList.add('hidden');
             }
 
-            // Draw simple background grid on map as fallback
+            // Draw vector geometry or simple background grid on map as fallback
             this.loadFallbackDiagram();
         }
     },
@@ -173,12 +176,213 @@ const AirportDiagram = {
      * Draw fallback background when PDF cannot load
      */
     loadFallbackDiagram() {
-        const fallbackCanvas = this.createFallbackCanvas();
-        if (!fallbackCanvas) return;
+        this.loadVectorDiagram().then((rendered) => {
+            if (rendered) return;
 
-        const chartImageUrl = fallbackCanvas.toDataURL('image/png');
-        const chartSize = { width: fallbackCanvas.width, height: fallbackCanvas.height };
-        this.addChartOverlay(chartImageUrl, chartSize);
+            const fallbackCanvas = this.createFallbackCanvas();
+            if (!fallbackCanvas) return;
+
+            const chartImageUrl = fallbackCanvas.toDataURL('image/png');
+            const chartSize = { width: fallbackCanvas.width, height: fallbackCanvas.height };
+            this.addChartOverlay(chartImageUrl, chartSize);
+        }).catch((error) => {
+            Utils.log(`Vector rendering failed, using fallback grid: ${error.message}`, 'warn');
+            const fallbackCanvas = this.createFallbackCanvas();
+            if (!fallbackCanvas) return;
+
+            const chartImageUrl = fallbackCanvas.toDataURL('image/png');
+            const chartSize = { width: fallbackCanvas.width, height: fallbackCanvas.height };
+            this.addChartOverlay(chartImageUrl, chartSize);
+        });
+    },
+
+    /**
+     * Load and render vector geometry from OpenStreetMap
+     */
+    async loadVectorDiagram() {
+        if (this.diagramConfig.vectorSource !== 'osm') return false;
+        if (typeof L === 'undefined') {
+            Utils.log('Leaflet is not available for vector rendering', 'error');
+            return false;
+        }
+
+        try {
+            Utils.log('Loading vector geometry from OpenStreetMap...', 'info');
+
+            if (this.elements.loadingIndicator) {
+                this.elements.loadingIndicator.classList.remove('hidden');
+            }
+
+            if (!this.mapState.map) {
+                this.initializeMap();
+            }
+
+            const vectorData = await this.fetchOsmVectorData();
+            const geometries = this.extractOsmGeometries(vectorData);
+            if (!geometries.length) {
+                Utils.log('No runway or taxiway geometry found in OSM response', 'warn');
+                if (this.elements.loadingIndicator) {
+                    this.elements.loadingIndicator.classList.add('hidden');
+                }
+                return false;
+            }
+
+            const vectorCanvas = this.renderVectorDiagram(geometries);
+            if (!vectorCanvas) return false;
+
+            const chartImageUrl = vectorCanvas.toDataURL('image/png');
+            const chartSize = { width: vectorCanvas.width, height: vectorCanvas.height };
+            this.addChartOverlay(chartImageUrl, chartSize);
+
+            if (this.elements.loadingIndicator) {
+                this.elements.loadingIndicator.classList.add('hidden');
+            }
+
+            return true;
+        } catch (error) {
+            Utils.log(`Failed to load vector geometry: ${error.message}`, 'warn');
+            if (this.elements.loadingIndicator) {
+                this.elements.loadingIndicator.classList.add('hidden');
+            }
+            return false;
+        }
+    },
+
+    /**
+     * Fetch runway/taxiway geometry from Overpass API
+     */
+    async fetchOsmVectorData() {
+        const airportId = this.diagramConfig.airportId;
+        const overpassQuery = `
+            [out:json][timeout:25];
+            area["aeroway"="aerodrome"]["icao"="${airportId}"]->.searchArea;
+            (
+              way["aeroway"~"runway|taxiway|taxiway_centerline"](area.searchArea);
+            );
+            out geom;
+        `;
+
+        const requestUrl = `${this.diagramConfig.vectorDataUrl}?data=${encodeURIComponent(overpassQuery)}`;
+        const response = await fetch(requestUrl);
+        if (!response.ok) {
+            throw new Error(`Overpass request failed (${response.status})`);
+        }
+
+        return response.json();
+    },
+
+    /**
+     * Extract runway/taxiway geometry from Overpass response
+     */
+    extractOsmGeometries(data) {
+        if (!data || !Array.isArray(data.elements)) {
+            return [];
+        }
+
+        return data.elements
+            .filter((element) => element.type === 'way' && Array.isArray(element.geometry))
+            .map((element) => ({
+                type: element.tags?.aeroway || 'unknown',
+                surface: element.tags?.surface || 'unknown',
+                name: element.tags?.ref || element.tags?.name || null,
+                coords: element.geometry.map((point) => [point.lat, point.lon])
+            }));
+    },
+
+    /**
+     * Render vector geometry to a canvas and set map bounds
+     */
+    renderVectorDiagram(geometries) {
+        const allCoords = geometries.flatMap((feature) => feature.coords);
+        if (!allCoords.length) return null;
+
+        const bounds = L.latLngBounds(allCoords.map((coord) => L.latLng(coord[0], coord[1])));
+        this.mapState.chartBounds = bounds;
+
+        const projected = allCoords.map((coord) => L.Projection.SphericalMercator.project(L.latLng(coord[0], coord[1])));
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        projected.forEach((point) => {
+            minX = Math.min(minX, point.x);
+            maxX = Math.max(maxX, point.x);
+            minY = Math.min(minY, point.y);
+            maxY = Math.max(maxY, point.y);
+        });
+
+        const padding = 0.05;
+        const xSpan = maxX - minX;
+        const ySpan = maxY - minY;
+        minX -= xSpan * padding;
+        maxX += xSpan * padding;
+        minY -= ySpan * padding;
+        maxY += ySpan * padding;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        const baseSize = this.diagramConfig.vectorCanvasSize;
+        const aspectRatio = (maxX - minX) / (maxY - minY || 1);
+        canvas.width = baseSize;
+        canvas.height = Math.max(450, Math.round(baseSize / aspectRatio));
+
+        ctx.fillStyle = '#0a1628';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const projectToCanvas = (lat, lon) => {
+            const point = L.Projection.SphericalMercator.project(L.latLng(lat, lon));
+            const x = (point.x - minX) / (maxX - minX);
+            const y = (point.y - minY) / (maxY - minY);
+            return {
+                x: x * canvas.width,
+                y: canvas.height - y * canvas.height
+            };
+        };
+
+        geometries.forEach((feature) => {
+            const coords = feature.coords;
+            if (coords.length < 2) return;
+
+            ctx.beginPath();
+            coords.forEach((coord, index) => {
+                const point = projectToCanvas(coord[0], coord[1]);
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+
+            if (feature.type === 'runway') {
+                ctx.strokeStyle = '#4f4f4f';
+                ctx.lineWidth = 16;
+                ctx.lineCap = 'round';
+            } else if (feature.type === 'taxiway') {
+                ctx.strokeStyle = '#3a3f4a';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+            } else {
+                ctx.strokeStyle = '#4b5c76';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+            }
+
+            ctx.stroke();
+
+            if (feature.type === 'runway') {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([14, 10]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        });
+
+        Utils.log('Vector diagram rendered', 'info');
+        return canvas;
     },
 
     /**
