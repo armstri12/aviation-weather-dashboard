@@ -303,8 +303,26 @@
                 <span class="taf-validity" id="tafValidity">Valid: --/--Z to --/--Z</span>
             </div>
             <div class="panel-content">
-                <div class="taf-timeline-container">
-                    <canvas id="tafTimeline"></canvas>
+                <div class="taf-visualization">
+                    <div class="taf-timeline-container">
+                        <canvas id="tafTimeline"></canvas>
+                    </div>
+                    <div class="taf-legend" aria-label="TAF timeline labels">
+                        <div class="taf-legend-group">
+                            <span class="taf-legend-title">Bar Labels</span>
+                            <span class="taf-legend-item">Top: Visibility</span>
+                            <span class="taf-legend-item">Middle: Wind</span>
+                            <span class="taf-legend-item">Lower: Ceiling</span>
+                            <span class="taf-legend-item">Bottom: Weather</span>
+                        </div>
+                        <div class="taf-legend-group">
+                            <span class="taf-legend-title">Flight Categories</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch vfr"></span>VFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch mvfr"></span>MVFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch ifr"></span>IFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch lifr"></span>LIFR</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="taf-details" id="tafDetails">
                     <div class="taf-raw">
@@ -315,45 +333,6 @@
             </div>
         </section>
 
-        <!-- Quick Links Footer -->
-        <footer class="quick-links">
-            <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/dafd/" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">📚</span>
-                <span class="link-label">Chart Supplement</span>
-            </a>
-            <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/dtpp/" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">🛬</span>
-                <span class="link-label">Airport Diagrams</span>
-            </a>
-            <a href="https://notams.aim.faa.gov/notamSearch/" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">📋</span>
-                <span class="link-label">NOTAMs</span>
-            </a>
-            <a href="https://tfr.faa.gov/tfr2/list.html" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">🚫</span>
-                <span class="link-label">TFRs</span>
-            </a>
-            <a href="https://aviationweather.gov/pirep" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">🗣️</span>
-                <span class="link-label">PIREPs</span>
-            </a>
-            <a href="https://aviationweather.gov/airmet" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">⚡</span>
-                <span class="link-label">AIRMET/SIGMET</span>
-            </a>
-            <a href="https://aviationweather.gov/data/windtemp/" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">💨</span>
-                <span class="link-label">Winds Aloft</span>
-            </a>
-            <a href="https://aviationweather.gov/progchart" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">🗺</span>
-                <span class="link-label">Prog Charts</span>
-            </a>
-            <a href="https://skyvector.com/" target="_blank" rel="noopener noreferrer" class="quick-link">
-                <span class="link-icon">🧭</span>
-                <span class="link-label">SkyVector</span>
-            </a>
-        </footer>
     </div>
 
     <!-- Scripts -->
