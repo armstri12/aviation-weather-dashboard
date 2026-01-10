@@ -230,8 +230,8 @@ const AirportDiagram = {
         try {
             const page = await this.pdfState.document.getPage(pageNumber);
 
-            // Get viewport at desired scale - MUCH smaller to fit better
-            const viewport = page.getViewport({ scale: 0.45 });
+            // Get viewport at better scale for quality
+            const viewport = page.getViewport({ scale: 0.55 });
 
             // Set canvas dimensions
             this.elements.canvas.width = viewport.width;
@@ -309,7 +309,7 @@ const AirportDiagram = {
             arrow.style.opacity = '1';
             // Rotate arrow to point in wind direction (where it's blowing TO)
             const rotation = (direction + 180) % 360;
-            arrow.setAttribute('transform', `rotate(${rotation}, 200, 200)`);
+            arrow.setAttribute('transform', `rotate(${rotation}, 350, 350)`);
 
             if (this.elements.windDirText) {
                 this.elements.windDirText.textContent = `${String(direction).padStart(3, '0')}°`;
@@ -325,9 +325,9 @@ const AirportDiagram = {
         const sock = this.elements.windSock;
         if (!sockGroup || !sock) return;
 
-        // Position windsock in top-right corner for maximum visibility
-        const offsetX = 320;  // Right side
-        const offsetY = 80;   // Top
+        // Position windsock in top-left corner, out of the way
+        const offsetX = 50;  // Left side
+        const offsetY = 50;  // Top
         sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
