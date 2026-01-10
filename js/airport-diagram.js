@@ -30,7 +30,7 @@ const AirportDiagram = {
 
     // KUGN airport chart URL (uses latest cycle)
     // Using Cloudflare Worker proxy to bypass CORS restrictions
-    chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart',
+    chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart/KUGN',
 
     /**
      * Initialize the airport diagram
@@ -52,8 +52,12 @@ const AirportDiagram = {
 
         this.elements.context = this.elements.canvas.getContext('2d');
 
-        // Load and render the PDF chart
-        await this.loadAirportChart();
+        // Load and render the PDF chart (or fallback if chartUrl is null)
+        if (this.chartUrl) {
+            await this.loadAirportChart();
+        } else {
+            this.drawFallbackBackground();
+        }
 
         // Initialize windsock position
         this.updateWind(0, 0);
