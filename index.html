@@ -74,30 +74,47 @@
                         <svg class="windsock-overlay" id="windsockOverlay" viewBox="0 0 400 400">
                             <defs>
                                 <filter id="glow">
-                                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                                     <feMerge>
                                         <feMergeNode in="coloredBlur"/>
                                         <feMergeNode in="SourceGraphic"/>
                                     </feMerge>
                                 </filter>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                                    <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#00D4FF"/>
+                                </marker>
                             </defs>
 
-                            <!-- Wind Sock Group -->
+                            <!-- Wind direction indicator in center -->
+                            <g id="windDirectionArrow" class="wind-direction-arrow">
+                                <line x1="200" y1="200" x2="200" y2="120" stroke="#00D4FF" stroke-width="3" marker-end="url(#arrowhead)"/>
+                                <circle cx="200" cy="200" r="8" fill="#00D4FF"/>
+                            </g>
+
+                            <!-- Large Wind Sock in corner -->
                             <g class="wind-sock-group" id="windSockGroup">
                                 <g class="wind-sock-container">
-                                    <!-- Glow background -->
-                                    <circle cx="0" cy="0" r="35" fill="rgba(0, 212, 255, 0.1)" filter="url(#glow)"/>
-                                    <!-- Sock circle background -->
-                                    <circle cx="0" cy="0" r="28" fill="rgba(19, 27, 46, 0.95)" stroke="#00D4FF" stroke-width="2"/>
-                                    <!-- Wind sock -->
+                                    <!-- Large background circle -->
+                                    <circle cx="0" cy="0" r="55" fill="rgba(10, 22, 40, 0.85)" stroke="#00D4FF" stroke-width="3"/>
+                                    <!-- Glow effect -->
+                                    <circle cx="0" cy="0" r="50" fill="rgba(0, 212, 255, 0.15)" filter="url(#glow)"/>
+
+                                    <!-- Wind sock - MUCH LARGER -->
                                     <g id="windSock">
-                                        <polygon points="0,-10 35,0 0,10" fill="#FF5722" opacity="0.9"/>
-                                        <polygon points="0,-8 30,0 0,8" fill="#FF6B3D"/>
-                                        <line x1="0" y1="0" x2="30" y2="0" stroke="#FFF" stroke-width="1.5"/>
+                                        <!-- Main cone -->
+                                        <polygon points="0,-18 60,0 0,18" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="2"/>
+                                        <!-- Inner cone for depth -->
+                                        <polygon points="0,-14 50,0 0,14" fill="#FF6B3D"/>
+                                        <!-- Centerline -->
+                                        <line x1="0" y1="0" x2="50" y2="0" stroke="#FFF" stroke-width="2"/>
                                         <!-- Wind speed rings -->
-                                        <line x1="10" y1="-8" x2="10" y2="8" stroke="#FFF" stroke-width="1" opacity="0.6"/>
-                                        <line x1="20" y1="-8" x2="20" y2="8" stroke="#FFF" stroke-width="1" opacity="0.6"/>
+                                        <line x1="15" y1="-14" x2="15" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                        <line x1="30" y1="-14" x2="30" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                        <line x1="45" y1="-14" x2="45" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
                                     </g>
+
+                                    <!-- Wind speed text -->
+                                    <text id="windSpeedText" x="0" y="45" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
                                 </g>
                             </g>
                         </svg>

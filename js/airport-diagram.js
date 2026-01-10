@@ -11,7 +11,9 @@ const AirportDiagram = {
         loadingIndicator: null,
         windsockOverlay: null,
         windSockGroup: null,
-        windSock: null
+        windSock: null,
+        windDirectionArrow: null,
+        windSpeedText: null
     },
 
     // PDF state
@@ -44,6 +46,8 @@ const AirportDiagram = {
         this.elements.windsockOverlay = document.getElementById('windsockOverlay');
         this.elements.windSockGroup = document.getElementById('windSockGroup');
         this.elements.windSock = document.getElementById('windSock');
+        this.elements.windDirectionArrow = document.getElementById('windDirectionArrow');
+        this.elements.windSpeedText = document.getElementById('windSpeedText');
 
         if (!this.elements.canvas) {
             Utils.log('Canvas element not found', 'error');
@@ -224,8 +228,8 @@ const AirportDiagram = {
         try {
             const page = await this.pdfState.document.getPage(pageNumber);
 
-            // Get viewport at desired scale - reduced for better fit
-            const viewport = page.getViewport({ scale: 0.8 });
+            // Get viewport at desired scale - smaller for better visibility
+            const viewport = page.getViewport({ scale: 0.65 });
 
             // Set canvas dimensions
             this.elements.canvas.width = viewport.width;
@@ -256,9 +260,18 @@ const AirportDiagram = {
     updateWind(direction, speed, gust = null) {
         this.windState = { direction, speed, gust };
 
-        // Update windsock
+        // Update windsock and wind arrow
         if (this.elements.windSockGroup && this.elements.windSock) {
             this.updateWindSock(direction, speed);
+        }
+
+        if (this.elements.windDirectionArrow) {
+            this.updateWindArrow(direction, speed, gust);
+        }
+
+        if (this.elements.windSpeedText) {
+            const displaySpeed = gust ? `${speed}G${gust}` : `${speed}`;
+            this.elements.windSpeedText.textContent = speed === 0 ? 'CALM' : `${displaySpeed} KT`;
         }
 
         // Update wind summary text
@@ -279,6 +292,23 @@ const AirportDiagram = {
     },
 
     /**
+     * Update wind direction arrow in center
+     */
+    updateWindArrow(direction, speed, gust = null) {
+        const arrow = this.elements.windDirectionArrow;
+        if (!arrow) return;
+
+        if (direction === 'VRB' || direction === null || speed === 0) {
+            arrow.style.opacity = '0.3';
+        } else {
+            arrow.style.opacity = '1';
+            // Rotate arrow to point in wind direction (where it's blowing TO)
+            const rotation = (direction + 180) % 360;
+            arrow.setAttribute('transform', `rotate(${rotation}, 200, 200)`);
+        }
+    },
+
+    /**
      * Update wind sock appearance and position
      */
     updateWindSock(direction, speed) {
@@ -286,10 +316,9 @@ const AirportDiagram = {
         const sock = this.elements.windSock;
         if (!sockGroup || !sock) return;
 
-        // Position windsock in top-right corner of overlay (viewBox coordinates)
-        // Using fixed position that's always visible
-        const offsetX = 350; // Far right in 400x400 viewBox
-        const offsetY = 50;  // Near top in 400x400 viewBox
+        // Position windsock in top-left corner (more visible on light chart)
+        const offsetX = 60;  // Left side
+        const offsetY = 60;  // Top
         sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
@@ -297,19 +326,17 @@ const AirportDiagram = {
         const rotation = direction === 'VRB' || direction === null ? 0 : (direction + 180) % 360;
         sock.setAttribute('transform', `rotate(${rotation}, 0, 0)`);
 
-        // Scale sock based on wind speed
-        // 0-5 kt: limp, 5-15 kt: partial, 15+ kt: full
+        // Scale sock based on wind speed - BIGGER scaling
         let scaleX = 0.3;
         if (speed === 0) {
             scaleX = 0.2; // Very limp for calm
         } else if (speed >= 15) {
-            scaleX = 1;
+            scaleX = 1.2; // Extended even more for high winds
         } else if (speed >= 5) {
-            scaleX = 0.3 + (speed - 5) * 0.07;
+            scaleX = 0.4 + (speed - 5) * 0.08;
         }
 
         // Apply scale to the polygons using proper SVG syntax
-        // SVG uses scale(x, y) not scaleX(x)
         const polygons = sock.querySelectorAll('polygon');
         polygons.forEach(polygon => {
             polygon.setAttribute('transform', `scale(${scaleX}, 1)`);
@@ -321,10 +348,13 @@ const AirportDiagram = {
         if (mainPolygon) {
             if (effectiveSpeed >= 25) {
                 mainPolygon.setAttribute('fill', '#DC143C'); // Red for high winds
+                mainPolygon.setAttribute('stroke', '#8B0000'); // Dark red outline
             } else if (effectiveSpeed >= 15) {
                 mainPolygon.setAttribute('fill', '#FFA500'); // Orange for moderate winds
+                mainPolygon.setAttribute('stroke', '#FF6B00');
             } else {
                 mainPolygon.setAttribute('fill', '#FF5722'); // Normal orange
+                mainPolygon.setAttribute('stroke', '#FF0000');
             }
         }
 
