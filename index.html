@@ -272,35 +272,34 @@
                     </div>
                 </div>
             </section>
+            <!-- TAF Timeline -->
+            <section class="panel panel-taf">
+                <div class="panel-header">
+                    <h2>TAF Forecast</h2>
+                    <span class="taf-validity" id="tafValidity">Valid: --/--Z to --/--Z</span>
+                </div>
+                <div class="panel-content">
+                    <div class="taf-visualization">
+                        <div class="taf-timeline-container">
+                            <canvas id="tafTimeline"></canvas>
+                        </div>
+                        <div class="taf-legend taf-legend-bottom" aria-label="TAF flight category legend">
+                            <span class="taf-legend-title">Flight Categories</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch vfr"></span>VFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch mvfr"></span>MVFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch ifr"></span>IFR</span>
+                            <span class="taf-legend-item"><span class="taf-legend-swatch lifr"></span>LIFR</span>
+                        </div>
+                    </div>
+                    <div class="taf-details" id="tafDetails">
+                        <div class="taf-raw">
+                            <h3>Raw TAF</h3>
+                            <code id="rawTaf">Loading...</code>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
-
-        <!-- TAF Timeline -->
-        <section class="panel panel-taf">
-            <div class="panel-header">
-                <h2>TAF Forecast</h2>
-                <span class="taf-validity" id="tafValidity">Valid: --/--Z to --/--Z</span>
-            </div>
-            <div class="panel-content">
-                <div class="taf-visualization">
-                    <div class="taf-timeline-container">
-                        <canvas id="tafTimeline"></canvas>
-                    </div>
-                    <div class="taf-legend taf-legend-bottom" aria-label="TAF flight category legend">
-                        <span class="taf-legend-title">Flight Categories</span>
-                        <span class="taf-legend-item"><span class="taf-legend-swatch vfr"></span>VFR</span>
-                        <span class="taf-legend-item"><span class="taf-legend-swatch mvfr"></span>MVFR</span>
-                        <span class="taf-legend-item"><span class="taf-legend-swatch ifr"></span>IFR</span>
-                        <span class="taf-legend-item"><span class="taf-legend-swatch lifr"></span>LIFR</span>
-                    </div>
-                </div>
-                <div class="taf-details" id="tafDetails">
-                    <div class="taf-raw">
-                        <h3>Raw TAF</h3>
-                        <code id="rawTaf">Loading...</code>
-                    </div>
-                </div>
-            </div>
-        </section>
 
     </div>
 
