@@ -30,7 +30,7 @@ const AirportDiagram = {
 
     // KUGN airport chart URL (uses latest cycle)
     // Using Cloudflare Worker proxy to bypass CORS restrictions
-    chartUrl: 'https://weather-proxy.ian-284.workers.dev/chart',
+    chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart',
 
     /**
      * Initialize the airport diagram
