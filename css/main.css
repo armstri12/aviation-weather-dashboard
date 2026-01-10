@@ -123,9 +123,10 @@ html, body {
 .main-grid {
     display: grid;
     grid-template-columns: 1fr 1.5fr 1.2fr;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr auto auto;
     grid-template-areas:
         "airport conditions maps"
+        "airport club maps"
         "airport taf taf";
     gap: 16px;
     min-height: 0;
@@ -141,6 +142,10 @@ html, body {
 
 .panel-maps {
     grid-area: maps;
+}
+
+.panel-club {
+    grid-area: club;
 }
 
 /* Panel Base Styles */
