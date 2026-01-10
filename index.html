@@ -66,7 +66,7 @@
                 <div class="panel-content">
                     <div class="airport-diagram" id="airportDiagram">
                         <div class="diagram-stage" aria-label="Airport runway layout">
-                            <svg class="airport-visual" id="windsockOverlay" viewBox="0 0 600 600" role="img" aria-label="Runway layout with wind indicator">
+                            <svg class="airport-visual" viewBox="0 0 600 600" role="img" aria-label="Runway layout with wind indicator">
                             <defs>
                                 <filter id="glow">
                                     <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -111,28 +111,6 @@
                                 <line x1="300" y1="300" x2="300" y2="120" stroke="#00D4FF" stroke-width="6" marker-end="url(#arrowhead)"/>
                                 <circle cx="300" cy="300" r="14" fill="#00D4FF" stroke="#FFF" stroke-width="2"/>
                                 <text x="300" y="340" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold" id="windDirText">---°</text>
-                            </g>
-
-                            <g class="wind-sock-group" id="windSockGroup" data-offset-x="130" data-offset-y="120">
-                                <g class="wind-sock-container">
-                                    <circle cx="0" cy="0" r="62" fill="rgba(10, 22, 40, 0.92)" stroke="#00D4FF" stroke-width="3"/>
-
-                                    <g class="wind-sock-pole">
-                                        <rect x="-6" y="-44" width="6" height="88" rx="3" fill="#9fb3c8"/>
-                                        <circle cx="-3" cy="-44" r="6" fill="#dfe9f3"/>
-                                    </g>
-
-                                    <g id="windSock">
-                                        <polygon class="sock-shell" points="0,-16 56,-6 58,0 56,6 0,16" fill="#FF6B3D" stroke="#FF2D2D" stroke-width="2"/>
-                                        <polygon class="sock-core" points="0,-12 46,-5 48,0 46,5 0,12" fill="#FF8A65"/>
-                                        <line x1="0" y1="0" x2="52" y2="0" stroke="#FFF" stroke-width="2"/>
-                                        <rect class="sock-stripe" x="10" y="-12" width="6" height="24" rx="3" fill="rgba(255,255,255,0.85)"/>
-                                        <rect class="sock-stripe" x="24" y="-11" width="6" height="22" rx="3" fill="rgba(255,255,255,0.85)"/>
-                                        <rect class="sock-stripe" x="38" y="-10" width="6" height="20" rx="3" fill="rgba(255,255,255,0.85)"/>
-                                    </g>
-
-                                    <text id="windSpeedText" x="0" y="46" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
-                                </g>
                             </g>
                             </svg>
                         </div>
