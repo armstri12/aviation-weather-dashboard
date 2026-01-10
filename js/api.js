@@ -11,8 +11,10 @@ const WeatherAPI = {
     cache: {
         metar: null,
         taf: null,
+        aircraftStatus: null,
         lastMetarFetch: null,
-        lastTafFetch: null
+        lastTafFetch: null,
+        lastAircraftStatusFetch: null
     },
 
     // Configuration
@@ -21,6 +23,8 @@ const WeatherAPI = {
         metarRefreshInterval: 10 * 60 * 1000, // 10 minutes
         tafRefreshInterval: 30 * 60 * 1000,   // 30 minutes
         imageRefreshInterval: 5 * 60 * 1000,  // 5 minutes
+        aircraftStatusRefreshInterval: 2 * 60 * 1000, // 2 minutes
+        aircraftStatusEndpoint: 'https://weather-proxy.ian-284.workers.dev/aircraft-status',
         maxRetries: 3,
         retryDelay: 2000
     },
@@ -253,6 +257,69 @@ const WeatherAPI = {
     },
 
     /**
+     * Fetch aircraft status for tail numbers
+     */
+    async fetchAircraftStatus(tailNumbers = []) {
+        if (!Array.isArray(tailNumbers) || tailNumbers.length === 0) {
+            return {};
+        }
+
+        const tailsParam = tailNumbers.map(tail => encodeURIComponent(tail)).join(',');
+        const url = `${this.config.aircraftStatusEndpoint}?tails=${tailsParam}`;
+
+        try {
+            const response = await this.fetchWithRetry(url);
+
+            const text = await response.text();
+            Utils.log(`Aircraft status response text (first 200 chars): ${text.substring(0, 200)}`, 'info');
+
+            let data = null;
+            if (text && text.trim().length > 0) {
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    Utils.log(`Failed to parse aircraft status JSON: ${parseError.message}`, 'warn');
+                    throw new Error(`JSON parse error: ${parseError.message}`);
+                }
+            }
+
+            const statusMap = {};
+            if (Array.isArray(data)) {
+                data.forEach(entry => {
+                    if (entry && entry.tailNumber) {
+                        statusMap[entry.tailNumber.toUpperCase()] = entry;
+                    }
+                });
+            } else if (data && typeof data === 'object') {
+                Object.entries(data).forEach(([tailNumber, entry]) => {
+                    if (entry) {
+                        statusMap[tailNumber.toUpperCase()] = entry;
+                    }
+                });
+            }
+
+            if (Object.keys(statusMap).length > 0) {
+                this.cache.aircraftStatus = statusMap;
+                this.cache.lastAircraftStatusFetch = new Date();
+                Utils.log('Aircraft status fetched', 'info');
+                return statusMap;
+            }
+
+            throw new Error('No aircraft status data returned');
+        } catch (error) {
+            Utils.log(`Failed to fetch aircraft status: ${error.message}`, 'error');
+            console.error('Aircraft status fetch error details:', error);
+
+            if (this.cache.aircraftStatus) {
+                Utils.log('Using cached aircraft status data', 'warn');
+                return this.cache.aircraftStatus;
+            }
+
+            throw error;
+        }
+    },
+
+    /**
      * Fetch both METAR and TAF
      */
     async fetchAll(station = this.config.station) {
@@ -290,6 +357,16 @@ const WeatherAPI = {
             return this.cache.taf;
         }
         return this.fetchTaf();
+    },
+
+    /**
+     * Get aircraft status with cache check
+     */
+    async getAircraftStatus(tailNumbers = [], forceRefresh = false) {
+        if (!forceRefresh && !this.isDataStale(this.cache.lastAircraftStatusFetch, this.config.aircraftStatusRefreshInterval)) {
+            return this.cache.aircraftStatus || {};
+        }
+        return this.fetchAircraftStatus(tailNumbers);
     },
 
     /**
@@ -372,6 +449,24 @@ const WeatherAPI = {
         setInterval(() => {
             this.refreshImages();
         }, this.config.imageRefreshInterval);
+
+        // Aircraft status refresh
+        setInterval(async () => {
+            const tailNumbers = typeof callbacks.getAircraftTailNumbers === 'function'
+                ? callbacks.getAircraftTailNumbers()
+                : callbacks.aircraftTailNumbers;
+
+            if (!Array.isArray(tailNumbers) || tailNumbers.length === 0) {
+                return;
+            }
+
+            try {
+                const status = await this.fetchAircraftStatus(tailNumbers);
+                if (callbacks.onAircraftStatus) callbacks.onAircraftStatus(status);
+            } catch (error) {
+                if (callbacks.onError) callbacks.onError('aircraft', error);
+            }
+        }, this.config.aircraftStatusRefreshInterval);
     },
 
     /**

@@ -8,6 +8,7 @@ const App = {
     state: {
         metar: null,
         taf: null,
+        aircraftStatus: {},
         lastUpdate: null,
         isLoading: true,
         hasError: false,
@@ -40,11 +41,14 @@ const App = {
 
         // Fetch initial data
         await this.loadWeatherData();
+        await this.loadAircraftStatus();
 
         // Start auto-refresh
         WeatherAPI.startAutoRefresh({
             onMetar: (data) => this.updateMetar(data),
             onTaf: (data) => this.updateTaf(data),
+            onAircraftStatus: (data) => this.updateAircraftStatus(data),
+            getAircraftTailNumbers: () => this.getTailNumbers(),
             onError: (type, error) => this.handleError(type, error)
         });
 
@@ -95,6 +99,36 @@ const App = {
         } finally {
             this.setLoading(false);
         }
+    },
+
+    /**
+     * Load aircraft status data
+     */
+    async loadAircraftStatus() {
+        const tailNumbers = this.getTailNumbers();
+        if (tailNumbers.length === 0) {
+            return;
+        }
+
+        try {
+            const statusMap = await WeatherAPI.getAircraftStatus(tailNumbers);
+            this.updateAircraftStatus(statusMap);
+        } catch (error) {
+            Utils.log(`Failed to load aircraft status: ${error.message}`, 'error');
+            this.handleError('aircraft', error);
+        }
+    },
+
+    /**
+     * Get configured tail numbers from the UI
+     */
+    getTailNumbers() {
+        const rows = document.querySelectorAll('.aircraft-row');
+        const tailNumbers = Array.from(rows)
+            .map(row => row.dataset.tailNumber?.toUpperCase())
+            .filter(Boolean);
+
+        return [...new Set(tailNumbers)];
     },
 
     /**
@@ -347,6 +381,74 @@ const App = {
     },
 
     /**
+     * Update aircraft status display
+     */
+    updateAircraftStatus(data, options = {}) {
+        const rows = document.querySelectorAll('.aircraft-row');
+        const emptyStateEl = document.getElementById('aircraftEmptyState');
+
+        if (!rows || rows.length === 0) return;
+
+        const statusMap = data && typeof data === 'object' ? data : {};
+        let hasData = false;
+
+        rows.forEach(row => {
+            const tailNumber = row.dataset.tailNumber?.toUpperCase();
+            const valueEl = row.querySelector('.value');
+            if (!valueEl || !tailNumber) return;
+
+            const statusData = statusMap[tailNumber];
+            if (statusData) {
+                valueEl.textContent = this.formatAircraftStatus(statusData);
+                hasData = true;
+            } else if (options.unavailable) {
+                valueEl.textContent = 'Unavailable';
+            } else {
+                valueEl.textContent = '--';
+            }
+        });
+
+        if (emptyStateEl) {
+            if (hasData) {
+                emptyStateEl.classList.add('hidden');
+            } else {
+                emptyStateEl.classList.remove('hidden');
+                emptyStateEl.textContent = options.unavailable ? 'Unavailable' : 'No data yet.';
+            }
+        }
+
+        this.state.aircraftStatus = statusMap;
+    },
+
+    /**
+     * Format aircraft status details
+     */
+    formatAircraftStatus(statusData) {
+        if (!statusData) {
+            return '--';
+        }
+
+        const parts = [];
+        if (statusData.status) {
+            parts.push(statusData.status);
+        }
+
+        if (statusData.lastSeen) {
+            parts.push(`Last seen at ${statusData.lastSeen}`);
+        } else if (statusData.airportName) {
+            parts.push(statusData.airportName);
+        }
+
+        const lat = statusData.latitude ?? statusData.lat;
+        const lon = statusData.longitude ?? statusData.lon;
+        if (typeof lat === 'number' && typeof lon === 'number') {
+            parts.push(`${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+        }
+
+        return parts.length > 0 ? parts.join(' • ') : 'Unavailable';
+    },
+
+    /**
      * Set up map tab switching
      */
     setupMapTabs() {
@@ -398,6 +500,9 @@ const App = {
 
         // Show error state in UI
         // For now, just log it. Could show toast notification.
+        if (type === 'aircraft') {
+            this.updateAircraftStatus(this.state.aircraftStatus, { unavailable: true });
+        }
     },
 
     /**
@@ -405,6 +510,7 @@ const App = {
      */
     async refresh() {
         await this.loadWeatherData();
+        await this.loadAircraftStatus();
         WeatherAPI.refreshImages();
     }
 };
