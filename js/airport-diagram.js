@@ -8,11 +8,7 @@ const AirportDiagram = {
     elements: {
         mapContainer: null,
         loadingIndicator: null,
-        windsockOverlay: null,
-        windSockGroup: null,
-        windSock: null,
         windDirectionArrow: null,
-        windSpeedText: null,
         windDirText: null
     },
 
@@ -69,11 +65,7 @@ const AirportDiagram = {
         // Get element references
         this.elements.mapContainer = document.getElementById('chartMap');
         this.elements.loadingIndicator = document.getElementById('chartLoading');
-        this.elements.windsockOverlay = document.getElementById('windsockOverlay');
-        this.elements.windSockGroup = document.getElementById('windSockGroup');
-        this.elements.windSock = document.getElementById('windSock');
         this.elements.windDirectionArrow = document.getElementById('windDirectionArrow');
-        this.elements.windSpeedText = document.getElementById('windSpeedText');
         this.elements.windDirText = document.getElementById('windDirText');
 
         if (this.elements.mapContainer) {
@@ -89,7 +81,7 @@ const AirportDiagram = {
             Utils.log('Map container not found, skipping chart rendering', 'warn');
         }
 
-        // Initialize windsock position
+        // Initialize wind arrow position
         this.updateWind(0, 0);
 
         Utils.log('Airport Diagram initialized', 'info');
@@ -159,9 +151,9 @@ const AirportDiagram = {
             }
 
         } catch (error) {
-            Utils.log(`Chart unavailable, using windsock overlay only: ${error.message}`, 'warn');
+            Utils.log(`Chart unavailable, using fallback diagram: ${error.message}`, 'warn');
 
-            // Hide loading indicator completely - windsock will still work
+            // Hide loading indicator completely
             if (this.elements.loadingIndicator) {
                 this.elements.loadingIndicator.classList.add('hidden');
             }
@@ -622,7 +614,7 @@ const AirportDiagram = {
     },
 
     /**
-     * Update wind arrow and sock
+     * Update wind arrow
      * @param {number} direction - Wind direction in degrees (from)
      * @param {number} speed - Wind speed in knots
      * @param {number} gust - Gust speed in knots (optional)
@@ -630,18 +622,8 @@ const AirportDiagram = {
     updateWind(direction, speed, gust = null) {
         this.windState = { direction, speed, gust };
 
-        // Update windsock and wind arrow
-        if (this.elements.windSockGroup && this.elements.windSock) {
-            this.updateWindSock(direction, speed);
-        }
-
         if (this.elements.windDirectionArrow) {
             this.updateWindArrow(direction, speed, gust);
-        }
-
-        if (this.elements.windSpeedText) {
-            const displaySpeed = gust ? `${speed}G${gust}` : `${speed}`;
-            this.elements.windSpeedText.textContent = speed === 0 ? 'CALM' : `${displaySpeed} KT`;
         }
 
         // Update wind summary text
@@ -685,121 +667,6 @@ const AirportDiagram = {
             if (this.elements.windDirText) {
                 this.elements.windDirText.textContent = `${String(direction).padStart(3, '0')}°`;
             }
-        }
-    },
-
-    /**
-     * Update wind sock appearance and position
-     */
-    updateWindSock(direction, speed) {
-        const sockGroup = this.elements.windSockGroup;
-        const sock = this.elements.windSock;
-        const overlay = this.elements.windsockOverlay;
-        if (!sockGroup || !sock || !overlay) return;
-
-        // Rotate sock to show wind direction
-        // Wind is reported as "from" direction, sock points where wind is blowing TO
-        const rotation = direction === 'VRB' || direction === null ? 0 : (direction + 180) % 360;
-
-        // Scale sock based on wind speed - BIGGER scaling
-        let scaleX = 0.3;
-        if (speed === 0) {
-            scaleX = 0.2; // Very limp for calm
-        } else if (speed >= 15) {
-            scaleX = 1.2; // Extended even more for high winds
-        } else if (speed >= 5) {
-            scaleX = 0.4 + (speed - 5) * 0.08;
-        }
-
-        sock.setAttribute('transform', `rotate(${rotation}, 0, 0) scale(${scaleX}, 1)`);
-
-        // Position windsock in top-left corner, out of the way, but clamp within viewBox
-        const offsetX = parseFloat(sockGroup.dataset.offsetX || '60');
-        const offsetY = parseFloat(sockGroup.dataset.offsetY || '60');
-        const paddingX = 24;
-        const paddingY = 24;
-        const viewBox = overlay.viewBox?.baseVal;
-        let viewBoxBounds = null;
-
-        if (viewBox && Number.isFinite(viewBox.width) && viewBox.width > 0) {
-            viewBoxBounds = {
-                minX: viewBox.x,
-                minY: viewBox.y,
-                width: viewBox.width,
-                height: viewBox.height
-            };
-        } else {
-            const viewBoxAttr = overlay.getAttribute('viewBox');
-            if (viewBoxAttr) {
-                const parts = viewBoxAttr.split(/[\s,]+/).map(Number);
-                if (parts.length === 4 && parts.every((value) => Number.isFinite(value))) {
-                    viewBoxBounds = {
-                        minX: parts[0],
-                        minY: parts[1],
-                        width: parts[2],
-                        height: parts[3]
-                    };
-                }
-            }
-        }
-
-        const applyClamp = (value, min, max) => {
-            if (!Number.isFinite(min) || !Number.isFinite(max)) {
-                return value;
-            }
-            if (max < min) {
-                return min;
-            }
-            return Math.min(Math.max(value, min), max);
-        };
-
-        if (viewBoxBounds) {
-            const previousTransform = sockGroup.getAttribute('transform');
-            sockGroup.setAttribute('transform', '');
-            const bbox = sockGroup.getBBox();
-            if (previousTransform) {
-                sockGroup.setAttribute('transform', previousTransform);
-            } else {
-                sockGroup.removeAttribute('transform');
-            }
-
-            const viewMinX = viewBoxBounds.minX + paddingX;
-            const viewMaxX = viewBoxBounds.minX + viewBoxBounds.width - paddingX;
-            const viewMinY = viewBoxBounds.minY + paddingY;
-            const viewMaxY = viewBoxBounds.minY + viewBoxBounds.height - paddingY;
-            const minTranslateX = viewMinX - bbox.x;
-            const maxTranslateX = viewMaxX - (bbox.x + bbox.width);
-            const minTranslateY = viewMinY - bbox.y;
-            const maxTranslateY = viewMaxY - (bbox.y + bbox.height);
-
-            const clampedX = applyClamp(offsetX, minTranslateX, maxTranslateX);
-            const clampedY = applyClamp(offsetY, minTranslateY, maxTranslateY);
-            sockGroup.setAttribute('transform', `translate(${clampedX}, ${clampedY})`);
-        } else {
-            sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
-        }
-
-        // Change color based on wind speed and gusts
-        const effectiveSpeed = this.windState.gust || speed;
-        const mainPolygon = sock.querySelector('.sock-shell');
-        if (mainPolygon) {
-            if (effectiveSpeed >= 25) {
-                mainPolygon.setAttribute('fill', '#DC143C'); // Red for high winds
-                mainPolygon.setAttribute('stroke', '#8B0000'); // Dark red outline
-            } else if (effectiveSpeed >= 15) {
-                mainPolygon.setAttribute('fill', '#FFA500'); // Orange for moderate winds
-                mainPolygon.setAttribute('stroke', '#FF6B00');
-            } else {
-                mainPolygon.setAttribute('fill', '#FF5722'); // Normal orange
-                mainPolygon.setAttribute('stroke', '#FF0000');
-            }
-        }
-
-        // Add pulsing animation for gusts
-        if (this.windState.gust && this.windState.gust > speed) {
-            sockGroup.style.animation = 'windSockPulse 1s ease-in-out infinite';
-        } else {
-            sockGroup.style.animation = 'windSockWave 1.5s ease-in-out infinite';
         }
     },
 
