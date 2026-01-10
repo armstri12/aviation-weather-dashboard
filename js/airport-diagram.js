@@ -50,6 +50,9 @@ const AirportDiagram = {
         ],
         runwayHeading: 50,
         orientation: 'north-up',
+        mapMode: 'chart-only', // chart-only or georeferenced
+        chartOpacity: 0.95,
+        mapPadding: [20, 20],
         baseMapUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         baseMapAttribution: '&copy; OpenStreetMap contributors'
     },
@@ -99,21 +102,28 @@ const AirportDiagram = {
             return;
         }
 
-        const bounds = L.latLngBounds(this.diagramConfig.chartBounds);
-        this.mapState.chartBounds = bounds;
-
-        this.mapState.map = L.map(this.elements.mapContainer, {
+        const isGeoreferenced = this.diagramConfig.mapMode === 'georeferenced';
+        const mapOptions = {
             zoomControl: false,
-            attributionControl: true,
+            attributionControl: isGeoreferenced,
             preferCanvas: true
-        });
+        };
 
-        this.mapState.map.fitBounds(bounds, { padding: [16, 16] });
+        if (!isGeoreferenced) {
+            mapOptions.crs = L.CRS.Simple;
+        }
 
-        this.mapState.baseLayer = L.tileLayer(this.diagramConfig.baseMapUrl, {
-            attribution: this.diagramConfig.baseMapAttribution,
-            maxZoom: 19
-        }).addTo(this.mapState.map);
+        this.mapState.map = L.map(this.elements.mapContainer, mapOptions);
+
+        if (isGeoreferenced) {
+            const bounds = L.latLngBounds(this.diagramConfig.chartBounds);
+            this.mapState.chartBounds = bounds;
+            this.mapState.map.fitBounds(bounds, { padding: this.diagramConfig.mapPadding });
+            this.mapState.baseLayer = L.tileLayer(this.diagramConfig.baseMapUrl, {
+                attribution: this.diagramConfig.baseMapAttribution,
+                maxZoom: 19
+            }).addTo(this.mapState.map);
+        }
     },
 
     /**
@@ -135,8 +145,9 @@ const AirportDiagram = {
             const chartCanvas = await this.renderPDFPage(1);
             const rotatedCanvas = this.applyDiagramOrientation(chartCanvas);
             const chartImageUrl = rotatedCanvas.toDataURL('image/png');
+            const chartSize = { width: rotatedCanvas.width, height: rotatedCanvas.height };
 
-            this.addChartOverlay(chartImageUrl);
+            this.addChartOverlay(chartImageUrl, chartSize);
 
             this.pdfState.loaded = true;
 
@@ -166,7 +177,8 @@ const AirportDiagram = {
         if (!fallbackCanvas) return;
 
         const chartImageUrl = fallbackCanvas.toDataURL('image/png');
-        this.addChartOverlay(chartImageUrl);
+        const chartSize = { width: fallbackCanvas.width, height: fallbackCanvas.height };
+        this.addChartOverlay(chartImageUrl, chartSize);
     },
 
     /**
@@ -376,19 +388,34 @@ const AirportDiagram = {
     /**
      * Add the chart overlay to the map
      */
-    addChartOverlay(chartImageUrl) {
-        if (!this.mapState.map || !this.mapState.chartBounds) return;
+    addChartOverlay(chartImageUrl, chartSize) {
+        if (!this.mapState.map) return;
 
         if (this.mapState.chartLayer) {
             this.mapState.map.removeLayer(this.mapState.chartLayer);
         }
 
-        this.mapState.chartLayer = L.imageOverlay(chartImageUrl, this.mapState.chartBounds, {
-            opacity: 0.85,
+        const isGeoreferenced = this.diagramConfig.mapMode === 'georeferenced';
+        if (!isGeoreferenced && chartSize) {
+            const bounds = L.latLngBounds(
+                [0, 0],
+                [chartSize.height, chartSize.width]
+            );
+            this.mapState.chartBounds = bounds;
+            this.mapState.map.setMaxBounds(bounds);
+            this.mapState.map.fitBounds(bounds, { padding: this.diagramConfig.mapPadding });
+            this.mapState.map.setMinZoom(this.mapState.map.getZoom());
+        }
+
+        const bounds = this.mapState.chartBounds;
+        if (!bounds) return;
+
+        this.mapState.chartLayer = L.imageOverlay(chartImageUrl, bounds, {
+            opacity: this.diagramConfig.chartOpacity,
             className: 'chart-overlay'
         }).addTo(this.mapState.map);
 
-        this.mapState.map.fitBounds(this.mapState.chartBounds, { padding: [16, 16] });
+        this.mapState.map.fitBounds(bounds, { padding: this.diagramConfig.mapPadding });
     },
 
     /**
