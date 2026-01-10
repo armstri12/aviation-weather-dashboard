@@ -123,8 +123,24 @@ html, body {
 .main-grid {
     display: grid;
     grid-template-columns: 1fr 1.5fr 1.2fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "airport conditions maps"
+        "airport taf taf";
     gap: 16px;
     min-height: 0;
+}
+
+.panel-airport {
+    grid-area: airport;
+}
+
+.panel-conditions {
+    grid-area: conditions;
+}
+
+.panel-maps {
+    grid-area: maps;
 }
 
 /* Panel Base Styles */
@@ -170,8 +186,8 @@ html, body {
 /* TAF Panel */
 .panel-taf {
     min-height: 200px;
-    margin-left: auto;
-    width: clamp(640px, 73%, 1200px);
+    grid-area: taf;
+    width: 100%;
 }
 
 .panel-taf .panel-content {
