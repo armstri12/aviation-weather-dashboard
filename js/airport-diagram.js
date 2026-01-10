@@ -224,8 +224,8 @@ const AirportDiagram = {
         try {
             const page = await this.pdfState.document.getPage(pageNumber);
 
-            // Get viewport at desired scale
-            const viewport = page.getViewport({ scale: 1.5 });
+            // Get viewport at desired scale - reduced for better fit
+            const viewport = page.getViewport({ scale: 0.8 });
 
             // Set canvas dimensions
             this.elements.canvas.width = viewport.width;
@@ -286,9 +286,10 @@ const AirportDiagram = {
         const sock = this.elements.windSock;
         if (!sockGroup || !sock) return;
 
-        // Position windsock in top-right corner of overlay
-        const offsetX = 320; // Position from center
-        const offsetY = 80;  // Position from center
+        // Position windsock in top-right corner of overlay (viewBox coordinates)
+        // Using fixed position that's always visible
+        const offsetX = 350; // Far right in 400x400 viewBox
+        const offsetY = 50;  // Near top in 400x400 viewBox
         sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
@@ -299,7 +300,9 @@ const AirportDiagram = {
         // Scale sock based on wind speed
         // 0-5 kt: limp, 5-15 kt: partial, 15+ kt: full
         let scaleX = 0.3;
-        if (speed >= 15) {
+        if (speed === 0) {
+            scaleX = 0.2; // Very limp for calm
+        } else if (speed >= 15) {
             scaleX = 1;
         } else if (speed >= 5) {
             scaleX = 0.3 + (speed - 5) * 0.07;
