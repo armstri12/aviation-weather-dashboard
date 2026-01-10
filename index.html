@@ -65,17 +65,8 @@
                 </div>
                 <div class="panel-content">
                     <div class="airport-diagram" id="airportDiagram">
-                        <!-- Leaflet Map for Airport Chart -->
-                        <div class="chart-container">
-                            <div id="chartMap" class="chart-map" aria-label="Airport diagram map"></div>
-                            <div class="chart-loading" id="chartLoading">
-                                <div class="loading-spinner"></div>
-                                <p>Loading airport chart...</p>
-                            </div>
-                        </div>
-
-                        <!-- SVG Overlay for Windsock -->
-                        <svg class="windsock-overlay" id="windsockOverlay" viewBox="0 0 400 400">
+                        <div class="diagram-stage" aria-label="Airport runway layout">
+                            <svg class="airport-visual" id="windsockOverlay" viewBox="0 0 600 600" role="img" aria-label="Runway layout with wind indicator">
                             <defs>
                                 <filter id="glow">
                                     <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -89,37 +80,56 @@
                                 </marker>
                             </defs>
 
-                            <!-- Wind direction indicator - BOTTOM RIGHT corner only -->
-                            <g id="windDirectionArrow" class="wind-direction-arrow">
-                                <line x1="350" y1="350" x2="350" y2="280" stroke="#00D4FF" stroke-width="5" marker-end="url(#arrowhead)"/>
-                                <circle cx="350" cy="350" r="10" fill="#00D4FF" stroke="#FFF" stroke-width="2"/>
-                                <text x="350" y="380" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="16" font-weight="bold" id="windDirText">---°</text>
+                            <rect x="24" y="24" width="552" height="552" rx="32" fill="rgba(8, 16, 30, 0.85)" stroke="rgba(0, 212, 255, 0.25)" stroke-width="2"/>
+
+                            <circle cx="300" cy="300" r="220" fill="none" stroke="rgba(0, 212, 255, 0.18)" stroke-width="2" stroke-dasharray="6 10"/>
+                            <circle cx="300" cy="300" r="140" fill="none" stroke="rgba(0, 212, 255, 0.12)" stroke-width="1.5" stroke-dasharray="4 8"/>
+
+                            <text x="300" y="80" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">N</text>
+                            <text x="300" y="532" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">S</text>
+                            <text x="78" y="308" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">W</text>
+                            <text x="522" y="308" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">E</text>
+
+                            <g class="runway-shape" transform="translate(300 300) rotate(50)">
+                                <rect x="-26" y="-210" width="52" height="420" rx="12" fill="#242a33" stroke="#5f6b7a" stroke-width="3"/>
+                                <line x1="0" y1="-190" x2="0" y2="190" stroke="rgba(255,255,255,0.75)" stroke-width="3" stroke-dasharray="18 12"/>
+                                <text x="0" y="-190" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">05</text>
+                                <text x="0" y="210" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">23</text>
                             </g>
 
-                            <!-- Wind Sock - TOP LEFT corner -->
-                            <g class="wind-sock-group" id="windSockGroup">
-                                <g class="wind-sock-container">
-                                    <!-- Compact background circle -->
-                                    <circle cx="0" cy="0" r="45" fill="rgba(10, 22, 40, 0.85)" stroke="#00D4FF" stroke-width="3"/>
+                            <g class="runway-shape secondary" transform="translate(300 300) rotate(140)">
+                                <rect x="-18" y="-130" width="36" height="260" rx="10" fill="#1d222a" stroke="#4c5664" stroke-width="2"/>
+                                <line x1="0" y1="-110" x2="0" y2="110" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-dasharray="14 10"/>
+                                <text x="0" y="-120" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">14</text>
+                                <text x="0" y="140" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">32</text>
+                            </g>
 
-                                    <!-- Wind sock - medium size -->
+                            <text x="300" y="120" text-anchor="middle" fill="#00D4FF" font-family="Orbitron, monospace" font-size="22" letter-spacing="6">KUGN</text>
+                            <text x="300" y="146" text-anchor="middle" fill="#6b8cae" font-family="Inter, sans-serif" font-size="12">Waukegan National</text>
+
+                            <g id="windDirectionArrow" class="wind-direction-arrow" data-center-x="300" data-center-y="300">
+                                <line x1="300" y1="300" x2="300" y2="120" stroke="#00D4FF" stroke-width="6" marker-end="url(#arrowhead)"/>
+                                <circle cx="300" cy="300" r="14" fill="#00D4FF" stroke="#FFF" stroke-width="2"/>
+                                <text x="300" y="340" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold" id="windDirText">---°</text>
+                            </g>
+
+                            <g class="wind-sock-group" id="windSockGroup" data-offset-x="92" data-offset-y="104">
+                                <g class="wind-sock-container">
+                                    <circle cx="0" cy="0" r="52" fill="rgba(10, 22, 40, 0.92)" stroke="#00D4FF" stroke-width="3"/>
+
                                     <g id="windSock">
-                                        <!-- Main cone -->
-                                        <polygon points="0,-12 40,0 0,12" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="2"/>
-                                        <!-- Inner cone for depth -->
-                                        <polygon points="0,-10 35,0 0,10" fill="#FF6B3D"/>
-                                        <!-- Centerline -->
-                                        <line x1="0" y1="0" x2="35" y2="0" stroke="#FFF" stroke-width="2"/>
-                                        <!-- Wind speed rings -->
-                                        <line x1="12" y1="-10" x2="12" y2="10" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
-                                        <line x1="24" y1="-10" x2="24" y2="10" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                        <polygon points="0,-14 44,0 0,14" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="2"/>
+                                        <polygon points="0,-12 38,0 0,12" fill="#FF6B3D"/>
+                                        <line x1="0" y1="0" x2="38" y2="0" stroke="#FFF" stroke-width="2"/>
+                                        <line x1="14" y1="-12" x2="14" y2="12" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                        <line x1="26" y1="-12" x2="26" y2="12" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
                                     </g>
 
-                                    <!-- Wind speed text -->
-                                    <text id="windSpeedText" x="0" y="35" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
+                                    <text id="windSpeedText" x="0" y="40" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
                                 </g>
                             </g>
-                        </svg>
+                            </svg>
+                        </div>
                     </div>
 
                     <!-- Crosswind Analysis -->

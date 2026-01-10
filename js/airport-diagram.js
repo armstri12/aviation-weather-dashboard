@@ -76,18 +76,17 @@ const AirportDiagram = {
         this.elements.windSpeedText = document.getElementById('windSpeedText');
         this.elements.windDirText = document.getElementById('windDirText');
 
-        if (!this.elements.mapContainer) {
-            Utils.log('Map container not found', 'error');
-            return;
-        }
+        if (this.elements.mapContainer) {
+            this.initializeMap();
 
-        this.initializeMap();
-
-        // Load and render the georeferenced chart (or fallback if chartUrl is null)
-        if (this.diagramConfig.chartUrl) {
-            await this.loadAirportChart();
+            // Load and render the georeferenced chart (or fallback if chartUrl is null)
+            if (this.diagramConfig.chartUrl) {
+                await this.loadAirportChart();
+            } else {
+                this.loadFallbackDiagram();
+            }
         } else {
-            this.loadFallbackDiagram();
+            Utils.log('Map container not found, skipping chart rendering', 'warn');
         }
 
         // Initialize windsock position
@@ -669,6 +668,9 @@ const AirportDiagram = {
         const arrow = this.elements.windDirectionArrow;
         if (!arrow) return;
 
+        const centerX = parseFloat(arrow.dataset.centerX || '350');
+        const centerY = parseFloat(arrow.dataset.centerY || '350');
+
         if (direction === 'VRB' || direction === null || speed === 0) {
             arrow.style.opacity = '0.3';
             if (this.elements.windDirText) {
@@ -678,7 +680,7 @@ const AirportDiagram = {
             arrow.style.opacity = '1';
             // Rotate arrow to point in wind direction (where it's blowing TO)
             const rotation = (direction + 180) % 360;
-            arrow.setAttribute('transform', `rotate(${rotation}, 350, 350)`);
+            arrow.setAttribute('transform', `rotate(${rotation}, ${centerX}, ${centerY})`);
 
             if (this.elements.windDirText) {
                 this.elements.windDirText.textContent = `${String(direction).padStart(3, '0')}°`;
@@ -695,8 +697,8 @@ const AirportDiagram = {
         if (!sockGroup || !sock) return;
 
         // Position windsock in top-left corner, out of the way
-        const offsetX = 50;  // Left side
-        const offsetY = 50;  // Top
+        const offsetX = parseFloat(sockGroup.dataset.offsetX || '60');
+        const offsetY = parseFloat(sockGroup.dataset.offsetY || '60');
         sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
