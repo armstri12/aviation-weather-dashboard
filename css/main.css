@@ -184,6 +184,13 @@ html, body {
     gap: 12px;
 }
 
+.taf-timeline-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 190px) minmax(0, 1fr);
+    gap: 12px;
+    align-items: stretch;
+}
+
 .taf-timeline-container {
     min-height: 150px;
     height: 200px;
@@ -203,18 +210,23 @@ html, body {
 .taf-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px 24px;
+    gap: 8px 12px;
     padding: 12px 14px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
 }
 
-.taf-legend-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 12px;
+.taf-legend-side {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    justify-content: center;
+}
+
+.taf-legend-bottom {
     align-items: center;
+    justify-content: flex-start;
 }
 
 .taf-legend-title {
@@ -223,7 +235,7 @@ html, body {
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-right: 6px;
+    margin-bottom: 2px;
 }
 
 .taf-legend-item {
