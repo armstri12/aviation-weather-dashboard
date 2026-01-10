@@ -170,8 +170,8 @@ html, body {
 /* TAF Panel */
 .panel-taf {
     min-height: 200px;
-    justify-self: end;
-    width: min(100%, 1000px);
+    margin-left: auto;
+    width: clamp(640px, 73%, 1200px);
 }
 
 .panel-taf .panel-content {
