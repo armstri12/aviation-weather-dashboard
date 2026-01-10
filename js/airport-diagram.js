@@ -694,12 +694,8 @@ const AirportDiagram = {
     updateWindSock(direction, speed) {
         const sockGroup = this.elements.windSockGroup;
         const sock = this.elements.windSock;
-        if (!sockGroup || !sock) return;
-
-        // Position windsock in top-left corner, out of the way
-        const offsetX = parseFloat(sockGroup.dataset.offsetX || '60');
-        const offsetY = parseFloat(sockGroup.dataset.offsetY || '60');
-        sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+        const overlay = this.elements.windsockOverlay;
+        if (!sockGroup || !sock || !overlay) return;
 
         // Rotate sock to show wind direction
         // Wind is reported as "from" direction, sock points where wind is blowing TO
@@ -716,6 +712,72 @@ const AirportDiagram = {
         }
 
         sock.setAttribute('transform', `rotate(${rotation}, 0, 0) scale(${scaleX}, 1)`);
+
+        // Position windsock in top-left corner, out of the way, but clamp within viewBox
+        const offsetX = parseFloat(sockGroup.dataset.offsetX || '60');
+        const offsetY = parseFloat(sockGroup.dataset.offsetY || '60');
+        const paddingX = 24;
+        const paddingY = 24;
+        const viewBox = overlay.viewBox?.baseVal;
+        let viewBoxBounds = null;
+
+        if (viewBox && Number.isFinite(viewBox.width) && viewBox.width > 0) {
+            viewBoxBounds = {
+                minX: viewBox.x,
+                minY: viewBox.y,
+                width: viewBox.width,
+                height: viewBox.height
+            };
+        } else {
+            const viewBoxAttr = overlay.getAttribute('viewBox');
+            if (viewBoxAttr) {
+                const parts = viewBoxAttr.split(/[\s,]+/).map(Number);
+                if (parts.length === 4 && parts.every((value) => Number.isFinite(value))) {
+                    viewBoxBounds = {
+                        minX: parts[0],
+                        minY: parts[1],
+                        width: parts[2],
+                        height: parts[3]
+                    };
+                }
+            }
+        }
+
+        const applyClamp = (value, min, max) => {
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                return value;
+            }
+            if (max < min) {
+                return min;
+            }
+            return Math.min(Math.max(value, min), max);
+        };
+
+        if (viewBoxBounds) {
+            const previousTransform = sockGroup.getAttribute('transform');
+            sockGroup.setAttribute('transform', '');
+            const bbox = sockGroup.getBBox();
+            if (previousTransform) {
+                sockGroup.setAttribute('transform', previousTransform);
+            } else {
+                sockGroup.removeAttribute('transform');
+            }
+
+            const viewMinX = viewBoxBounds.minX + paddingX;
+            const viewMaxX = viewBoxBounds.minX + viewBoxBounds.width - paddingX;
+            const viewMinY = viewBoxBounds.minY + paddingY;
+            const viewMaxY = viewBoxBounds.minY + viewBoxBounds.height - paddingY;
+            const minTranslateX = viewMinX - bbox.x;
+            const maxTranslateX = viewMaxX - (bbox.x + bbox.width);
+            const minTranslateY = viewMinY - bbox.y;
+            const maxTranslateY = viewMaxY - (bbox.y + bbox.height);
+
+            const clampedX = applyClamp(offsetX, minTranslateX, maxTranslateX);
+            const clampedY = applyClamp(offsetY, minTranslateY, maxTranslateY);
+            sockGroup.setAttribute('transform', `translate(${clampedX}, ${clampedY})`);
+        } else {
+            sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+        }
 
         // Change color based on wind speed and gusts
         const effectiveSpeed = this.windState.gust || speed;
