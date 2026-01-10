@@ -93,15 +93,15 @@
                             <g class="runway-shape" transform="translate(300 300) rotate(50)">
                                 <rect x="-26" y="-210" width="52" height="420" rx="12" fill="#242a33" stroke="#5f6b7a" stroke-width="3"/>
                                 <line x1="0" y1="-190" x2="0" y2="190" stroke="rgba(255,255,255,0.75)" stroke-width="3" stroke-dasharray="18 12"/>
-                                <text x="0" y="-190" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">05</text>
-                                <text x="0" y="210" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">23</text>
+                                <text x="0" y="-155" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">05</text>
+                                <text x="0" y="165" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">23</text>
                             </g>
 
                             <g class="runway-shape secondary" transform="translate(300 300) rotate(140)">
                                 <rect x="-18" y="-130" width="36" height="260" rx="10" fill="#1d222a" stroke="#4c5664" stroke-width="2"/>
                                 <line x1="0" y1="-110" x2="0" y2="110" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-dasharray="14 10"/>
-                                <text x="0" y="-120" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">14</text>
-                                <text x="0" y="140" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">32</text>
+                                <text x="0" y="-96" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">14</text>
+                                <text x="0" y="104" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">32</text>
                             </g>
 
                             <text x="300" y="120" text-anchor="middle" fill="#00D4FF" font-family="Orbitron, monospace" font-size="22" letter-spacing="6">KUGN</text>
@@ -113,19 +113,25 @@
                                 <text x="300" y="340" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold" id="windDirText">---°</text>
                             </g>
 
-                            <g class="wind-sock-group" id="windSockGroup" data-offset-x="92" data-offset-y="104">
+                            <g class="wind-sock-group" id="windSockGroup" data-offset-x="130" data-offset-y="120">
                                 <g class="wind-sock-container">
-                                    <circle cx="0" cy="0" r="52" fill="rgba(10, 22, 40, 0.92)" stroke="#00D4FF" stroke-width="3"/>
+                                    <circle cx="0" cy="0" r="62" fill="rgba(10, 22, 40, 0.92)" stroke="#00D4FF" stroke-width="3"/>
 
-                                    <g id="windSock">
-                                        <polygon points="0,-14 44,0 0,14" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="2"/>
-                                        <polygon points="0,-12 38,0 0,12" fill="#FF6B3D"/>
-                                        <line x1="0" y1="0" x2="38" y2="0" stroke="#FFF" stroke-width="2"/>
-                                        <line x1="14" y1="-12" x2="14" y2="12" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
-                                        <line x1="26" y1="-12" x2="26" y2="12" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                    <g class="wind-sock-pole">
+                                        <rect x="-6" y="-44" width="6" height="88" rx="3" fill="#9fb3c8"/>
+                                        <circle cx="-3" cy="-44" r="6" fill="#dfe9f3"/>
                                     </g>
 
-                                    <text id="windSpeedText" x="0" y="40" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
+                                    <g id="windSock">
+                                        <polygon class="sock-shell" points="0,-16 56,-6 58,0 56,6 0,16" fill="#FF6B3D" stroke="#FF2D2D" stroke-width="2"/>
+                                        <polygon class="sock-core" points="0,-12 46,-5 48,0 46,5 0,12" fill="#FF8A65"/>
+                                        <line x1="0" y1="0" x2="52" y2="0" stroke="#FFF" stroke-width="2"/>
+                                        <rect class="sock-stripe" x="10" y="-12" width="6" height="24" rx="3" fill="rgba(255,255,255,0.85)"/>
+                                        <rect class="sock-stripe" x="24" y="-11" width="6" height="22" rx="3" fill="rgba(255,255,255,0.85)"/>
+                                        <rect class="sock-stripe" x="38" y="-10" width="6" height="20" rx="3" fill="rgba(255,255,255,0.85)"/>
+                                    </g>
+
+                                    <text id="windSpeedText" x="0" y="46" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
                                 </g>
                             </g>
                             </svg>

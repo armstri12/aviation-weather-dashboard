@@ -704,7 +704,6 @@ const AirportDiagram = {
         // Rotate sock to show wind direction
         // Wind is reported as "from" direction, sock points where wind is blowing TO
         const rotation = direction === 'VRB' || direction === null ? 0 : (direction + 180) % 360;
-        sock.setAttribute('transform', `rotate(${rotation}, 0, 0)`);
 
         // Scale sock based on wind speed - BIGGER scaling
         let scaleX = 0.3;
@@ -716,15 +715,11 @@ const AirportDiagram = {
             scaleX = 0.4 + (speed - 5) * 0.08;
         }
 
-        // Apply scale to the polygons using proper SVG syntax
-        const polygons = sock.querySelectorAll('polygon');
-        polygons.forEach(polygon => {
-            polygon.setAttribute('transform', `scale(${scaleX}, 1)`);
-        });
+        sock.setAttribute('transform', `rotate(${rotation}, 0, 0) scale(${scaleX}, 1)`);
 
         // Change color based on wind speed and gusts
         const effectiveSpeed = this.windState.gust || speed;
-        const mainPolygon = sock.querySelector('polygon');
+        const mainPolygon = sock.querySelector('.sock-shell');
         if (mainPolygon) {
             if (effectiveSpeed >= 25) {
                 mainPolygon.setAttribute('fill', '#DC143C'); // Red for high winds
