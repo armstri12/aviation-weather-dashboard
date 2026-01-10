@@ -1,13 +1,12 @@
 /**
  * Aviation Weather Dashboard - Airport Diagram Controller
- * Handles PDF airport chart rendering and wind visualization
+ * Handles GeoPDF airport chart rendering, map overlay, and wind visualization
  */
 
 const AirportDiagram = {
     // Element references
     elements: {
-        canvas: null,
-        context: null,
+        mapContainer: null,
         loadingIndicator: null,
         windsockOverlay: null,
         windSockGroup: null,
@@ -24,6 +23,14 @@ const AirportDiagram = {
         loaded: false
     },
 
+    // Map state
+    mapState: {
+        map: null,
+        baseLayer: null,
+        chartLayer: null,
+        chartBounds: null
+    },
+
     // Current wind state
     windState: {
         direction: 0,
@@ -31,9 +38,21 @@ const AirportDiagram = {
         gust: null
     },
 
-    // KUGN airport chart URL (uses latest cycle)
-    // Using Cloudflare Worker proxy to bypass CORS restrictions
-    chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart/KUGN',
+    // Diagram configuration
+    diagramConfig: {
+        airportId: 'KUGN',
+        // FAA GeoPDF chart URL (via proxy for CORS)
+        chartUrl: 'https://chart-proxy.ian-284.workers.dev/chart/KUGN',
+        // Approximate georeferenced bounds for KUGN airport diagram
+        chartBounds: [
+            [42.4324, -87.8836],
+            [42.4122, -87.8532]
+        ],
+        runwayHeading: 50,
+        orientation: 'north-up',
+        baseMapUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        baseMapAttribution: '&copy; OpenStreetMap contributors'
+    },
 
     /**
      * Initialize the airport diagram
@@ -42,7 +61,7 @@ const AirportDiagram = {
         Utils.log('Initializing Airport Diagram...', 'info');
 
         // Get element references
-        this.elements.canvas = document.getElementById('chartCanvas');
+        this.elements.mapContainer = document.getElementById('chartMap');
         this.elements.loadingIndicator = document.getElementById('chartLoading');
         this.elements.windsockOverlay = document.getElementById('windsockOverlay');
         this.elements.windSockGroup = document.getElementById('windSockGroup');
@@ -51,18 +70,18 @@ const AirportDiagram = {
         this.elements.windSpeedText = document.getElementById('windSpeedText');
         this.elements.windDirText = document.getElementById('windDirText');
 
-        if (!this.elements.canvas) {
-            Utils.log('Canvas element not found', 'error');
+        if (!this.elements.mapContainer) {
+            Utils.log('Map container not found', 'error');
             return;
         }
 
-        this.elements.context = this.elements.canvas.getContext('2d');
+        this.initializeMap();
 
-        // Load and render the PDF chart (or fallback if chartUrl is null)
-        if (this.chartUrl) {
+        // Load and render the georeferenced chart (or fallback if chartUrl is null)
+        if (this.diagramConfig.chartUrl) {
             await this.loadAirportChart();
         } else {
-            this.drawFallbackBackground();
+            this.loadFallbackDiagram();
         }
 
         // Initialize windsock position
@@ -72,25 +91,52 @@ const AirportDiagram = {
     },
 
     /**
+     * Initialize Leaflet map
+     */
+    initializeMap() {
+        if (!this.elements.mapContainer || typeof L === 'undefined') {
+            Utils.log('Leaflet is not available', 'error');
+            return;
+        }
+
+        const bounds = L.latLngBounds(this.diagramConfig.chartBounds);
+        this.mapState.chartBounds = bounds;
+
+        this.mapState.map = L.map(this.elements.mapContainer, {
+            zoomControl: false,
+            attributionControl: true,
+            preferCanvas: true
+        });
+
+        this.mapState.map.fitBounds(bounds, { padding: [16, 16] });
+
+        this.mapState.baseLayer = L.tileLayer(this.diagramConfig.baseMapUrl, {
+            attribution: this.diagramConfig.baseMapAttribution,
+            maxZoom: 19
+        }).addTo(this.mapState.map);
+    },
+
+    /**
      * Load the airport chart PDF and render it
      */
     async loadAirportChart() {
         try {
-            Utils.log(`Loading airport chart from ${this.chartUrl}...`, 'info');
+            Utils.log(`Loading airport chart from ${this.diagramConfig.chartUrl}...`, 'info');
 
             // Show loading indicator
             if (this.elements.loadingIndicator) {
                 this.elements.loadingIndicator.classList.remove('hidden');
             }
 
-            // Load the PDF
-            const loadingTask = pdfjsLib.getDocument(this.chartUrl);
-            this.pdfState.document = await loadingTask.promise;
+            if (!this.mapState.map) {
+                this.initializeMap();
+            }
 
-            Utils.log(`PDF loaded successfully (${this.pdfState.document.numPages} pages)`, 'info');
+            const chartCanvas = await this.renderPDFPage(1);
+            const rotatedCanvas = this.applyDiagramOrientation(chartCanvas);
+            const chartImageUrl = rotatedCanvas.toDataURL('image/png');
 
-            // Render the first page
-            await this.renderPDFPage(1);
+            this.addChartOverlay(chartImageUrl);
 
             this.pdfState.loaded = true;
 
@@ -107,24 +153,35 @@ const AirportDiagram = {
                 this.elements.loadingIndicator.classList.add('hidden');
             }
 
-            // Draw simple background grid on canvas as fallback
-            this.drawFallbackBackground();
+            // Draw simple background grid on map as fallback
+            this.loadFallbackDiagram();
         }
     },
 
     /**
      * Draw fallback background when PDF cannot load
      */
-    drawFallbackBackground() {
-        if (!this.elements.canvas || !this.elements.context) return;
+    loadFallbackDiagram() {
+        const fallbackCanvas = this.createFallbackCanvas();
+        if (!fallbackCanvas) return;
 
-        const ctx = this.elements.context;
+        const chartImageUrl = fallbackCanvas.toDataURL('image/png');
+        this.addChartOverlay(chartImageUrl);
+    },
+
+    /**
+     * Create fallback background when PDF cannot load
+     */
+    createFallbackCanvas() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
         const width = 600;
         const height = 600;
 
         // Set canvas size
-        this.elements.canvas.width = width;
-        this.elements.canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
 
         // Dark background
         ctx.fillStyle = '#0a1628';
@@ -221,6 +278,7 @@ const AirportDiagram = {
         ctx.fillText('Waukegan National Airport', centerX, 75);
 
         Utils.log('Fallback diagram drawn', 'info');
+        return canvas;
     },
 
     /**
@@ -228,29 +286,109 @@ const AirportDiagram = {
      */
     async renderPDFPage(pageNumber) {
         try {
+            const loadingTask = pdfjsLib.getDocument(this.diagramConfig.chartUrl);
+            this.pdfState.document = await loadingTask.promise;
+
+            Utils.log(`PDF loaded successfully (${this.pdfState.document.numPages} pages)`, 'info');
+
             const page = await this.pdfState.document.getPage(pageNumber);
 
             // Get viewport at better scale for quality
             const viewport = page.getViewport({ scale: 0.55 });
 
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Failed to get canvas context for chart rendering');
+            }
+
             // Set canvas dimensions
-            this.elements.canvas.width = viewport.width;
-            this.elements.canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
 
             // Render the page
             const renderContext = {
-                canvasContext: this.elements.context,
+                canvasContext: ctx,
                 viewport: viewport
             };
 
             await page.render(renderContext).promise;
 
             Utils.log(`PDF page ${pageNumber} rendered successfully`, 'info');
+            return canvas;
 
         } catch (error) {
             Utils.log(`Failed to render PDF page: ${error.message}`, 'error');
             throw error;
         }
+    },
+
+    /**
+     * Apply orientation rotation to the diagram canvas
+     */
+    applyDiagramOrientation(canvas) {
+        if (!canvas) return canvas;
+
+        const rotation = this.getDiagramRotation();
+        if (rotation === 0) {
+            return canvas;
+        }
+
+        return this.rotateCanvas(canvas, rotation);
+    },
+
+    /**
+     * Calculate rotation based on orientation preference
+     */
+    getDiagramRotation() {
+        if (this.diagramConfig.orientation === 'runway-heading') {
+            return -this.diagramConfig.runwayHeading;
+        }
+
+        return 0;
+    },
+
+    /**
+     * Rotate a canvas to a new canvas with bounding box expansion
+     */
+    rotateCanvas(canvas, rotationDegrees) {
+        const radians = (rotationDegrees * Math.PI) / 180;
+        const sin = Math.abs(Math.sin(radians));
+        const cos = Math.abs(Math.cos(radians));
+
+        const newWidth = Math.ceil(canvas.width * cos + canvas.height * sin);
+        const newHeight = Math.ceil(canvas.width * sin + canvas.height * cos);
+
+        const rotatedCanvas = document.createElement('canvas');
+        rotatedCanvas.width = newWidth;
+        rotatedCanvas.height = newHeight;
+
+        const ctx = rotatedCanvas.getContext('2d');
+        if (!ctx) return canvas;
+
+        ctx.translate(newWidth / 2, newHeight / 2);
+        ctx.rotate(radians);
+        ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+        return rotatedCanvas;
+    },
+
+    /**
+     * Add the chart overlay to the map
+     */
+    addChartOverlay(chartImageUrl) {
+        if (!this.mapState.map || !this.mapState.chartBounds) return;
+
+        if (this.mapState.chartLayer) {
+            this.mapState.map.removeLayer(this.mapState.chartLayer);
+        }
+
+        this.mapState.chartLayer = L.imageOverlay(chartImageUrl, this.mapState.chartBounds, {
+            opacity: 0.85,
+            className: 'chart-overlay'
+        }).addTo(this.mapState.map);
+
+        this.mapState.map.fitBounds(this.mapState.chartBounds, { padding: [16, 16] });
     },
 
     /**
