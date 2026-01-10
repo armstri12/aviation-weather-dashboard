@@ -85,36 +85,37 @@
                                 </marker>
                             </defs>
 
-                            <!-- Wind direction indicator in center -->
+                            <!-- MASSIVE Wind direction indicator in center -->
                             <g id="windDirectionArrow" class="wind-direction-arrow">
-                                <line x1="200" y1="200" x2="200" y2="120" stroke="#00D4FF" stroke-width="3" marker-end="url(#arrowhead)"/>
-                                <circle cx="200" cy="200" r="8" fill="#00D4FF"/>
+                                <line x1="200" y1="200" x2="200" y2="80" stroke="#00D4FF" stroke-width="6" marker-end="url(#arrowhead)"/>
+                                <circle cx="200" cy="200" r="12" fill="#00D4FF" stroke="#FFF" stroke-width="2"/>
+                                <text x="200" y="265" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold" id="windDirText">---°</text>
                             </g>
 
-                            <!-- Large Wind Sock in corner -->
+                            <!-- HUGE Wind Sock in corner -->
                             <g class="wind-sock-group" id="windSockGroup">
                                 <g class="wind-sock-container">
-                                    <!-- Large background circle -->
-                                    <circle cx="0" cy="0" r="55" fill="rgba(10, 22, 40, 0.85)" stroke="#00D4FF" stroke-width="3"/>
+                                    <!-- HUGE background circle -->
+                                    <circle cx="0" cy="0" r="75" fill="rgba(10, 22, 40, 0.9)" stroke="#00D4FF" stroke-width="4"/>
                                     <!-- Glow effect -->
-                                    <circle cx="0" cy="0" r="50" fill="rgba(0, 212, 255, 0.15)" filter="url(#glow)"/>
+                                    <circle cx="0" cy="0" r="70" fill="rgba(0, 212, 255, 0.2)" filter="url(#glow)"/>
 
-                                    <!-- Wind sock - MUCH LARGER -->
+                                    <!-- Wind sock - MASSIVE -->
                                     <g id="windSock">
-                                        <!-- Main cone -->
-                                        <polygon points="0,-18 60,0 0,18" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="2"/>
+                                        <!-- Main cone - HUGE -->
+                                        <polygon points="0,-25 80,0 0,25" fill="#FF5722" opacity="0.95" stroke="#FF0000" stroke-width="3"/>
                                         <!-- Inner cone for depth -->
-                                        <polygon points="0,-14 50,0 0,14" fill="#FF6B3D"/>
+                                        <polygon points="0,-20 70,0 0,20" fill="#FF6B3D"/>
                                         <!-- Centerline -->
-                                        <line x1="0" y1="0" x2="50" y2="0" stroke="#FFF" stroke-width="2"/>
+                                        <line x1="0" y1="0" x2="70" y2="0" stroke="#FFF" stroke-width="3"/>
                                         <!-- Wind speed rings -->
-                                        <line x1="15" y1="-14" x2="15" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
-                                        <line x1="30" y1="-14" x2="30" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
-                                        <line x1="45" y1="-14" x2="45" y2="14" stroke="#FFF" stroke-width="1.5" opacity="0.7"/>
+                                        <line x1="20" y1="-20" x2="20" y2="20" stroke="#FFF" stroke-width="2" opacity="0.8"/>
+                                        <line x1="40" y1="-20" x2="40" y2="20" stroke="#FFF" stroke-width="2" opacity="0.8"/>
+                                        <line x1="60" y1="-20" x2="60" y2="20" stroke="#FFF" stroke-width="2" opacity="0.8"/>
                                     </g>
 
-                                    <!-- Wind speed text -->
-                                    <text id="windSpeedText" x="0" y="45" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="14" font-weight="bold">--</text>
+                                    <!-- Wind speed text - BIGGER -->
+                                    <text id="windSpeedText" x="0" y="60" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold">--</text>
                                 </g>
                             </g>
                         </svg>

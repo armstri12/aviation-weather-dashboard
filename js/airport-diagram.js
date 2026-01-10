@@ -13,7 +13,8 @@ const AirportDiagram = {
         windSockGroup: null,
         windSock: null,
         windDirectionArrow: null,
-        windSpeedText: null
+        windSpeedText: null,
+        windDirText: null
     },
 
     // PDF state
@@ -48,6 +49,7 @@ const AirportDiagram = {
         this.elements.windSock = document.getElementById('windSock');
         this.elements.windDirectionArrow = document.getElementById('windDirectionArrow');
         this.elements.windSpeedText = document.getElementById('windSpeedText');
+        this.elements.windDirText = document.getElementById('windDirText');
 
         if (!this.elements.canvas) {
             Utils.log('Canvas element not found', 'error');
@@ -228,8 +230,8 @@ const AirportDiagram = {
         try {
             const page = await this.pdfState.document.getPage(pageNumber);
 
-            // Get viewport at desired scale - smaller for better visibility
-            const viewport = page.getViewport({ scale: 0.65 });
+            // Get viewport at desired scale - MUCH smaller to fit better
+            const viewport = page.getViewport({ scale: 0.45 });
 
             // Set canvas dimensions
             this.elements.canvas.width = viewport.width;
@@ -300,11 +302,18 @@ const AirportDiagram = {
 
         if (direction === 'VRB' || direction === null || speed === 0) {
             arrow.style.opacity = '0.3';
+            if (this.elements.windDirText) {
+                this.elements.windDirText.textContent = 'CALM';
+            }
         } else {
             arrow.style.opacity = '1';
             // Rotate arrow to point in wind direction (where it's blowing TO)
             const rotation = (direction + 180) % 360;
             arrow.setAttribute('transform', `rotate(${rotation}, 200, 200)`);
+
+            if (this.elements.windDirText) {
+                this.elements.windDirText.textContent = `${String(direction).padStart(3, '0')}°`;
+            }
         }
     },
 
@@ -316,9 +325,9 @@ const AirportDiagram = {
         const sock = this.elements.windSock;
         if (!sockGroup || !sock) return;
 
-        // Position windsock in top-left corner (more visible on light chart)
-        const offsetX = 60;  // Left side
-        const offsetY = 60;  // Top
+        // Position windsock in top-right corner for maximum visibility
+        const offsetX = 320;  // Right side
+        const offsetY = 80;   // Top
         sockGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
 
         // Rotate sock to show wind direction
