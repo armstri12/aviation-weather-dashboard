@@ -29,8 +29,8 @@ const AirportDiagram = {
     },
 
     // KUGN airport chart URL (uses latest cycle)
-    // Using CORS proxy to bypass browser security restrictions
-    chartUrl: 'https://corsproxy.io/?https://aeronav.faa.gov/d-tpp/2501/05324AD.PDF',
+    // Using Cloudflare Worker proxy to bypass CORS restrictions
+    chartUrl: 'https://weather-proxy.ian-284.workers.dev/chart',
 
     /**
      * Initialize the airport diagram
