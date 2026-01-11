@@ -112,15 +112,15 @@ const WeatherAPI = {
     },
 
     /**
-     * Search for nearest TAF if direct TAF not available
+     * Search for nearest TAFs (returns multiple options)
      */
-    async findNearestTaf(station = this.config.station) {
+    async findNearestTafs(station = this.config.station, limit = 5) {
         try {
             // First, get the coordinates from the METAR
             const metar = await this.fetchMetar(station);
             if (!metar || !metar.lat || !metar.lon) {
                 Utils.log('Cannot search for nearest TAF: no coordinates available', 'warn');
-                return null;
+                return [];
             }
 
             const lat = parseFloat(metar.lat);
@@ -128,9 +128,10 @@ const WeatherAPI = {
 
             // Try expanding search radii: 50nm, 100nm, 150nm
             const searchRadii = [0.75, 1.5, 2.25]; // degrees (approximately 50, 100, 150 nm)
+            let allCandidates = [];
 
             for (const radius of searchRadii) {
-                Utils.log(`Searching for TAF within ${radius * 66.67} nm...`, 'info');
+                Utils.log(`Searching for TAFs within ${radius * 66.67} nm...`, 'info');
 
                 const minLat = lat - radius;
                 const maxLat = lat + radius;
@@ -155,19 +156,19 @@ const WeatherAPI = {
                     }
 
                     if (data && data.length > 0) {
-                        // Filter out the original airport and calculate distances
+                        // Filter and calculate distances
                         const candidates = data
                             .filter(taf => taf.icaoId !== station && taf.lat && taf.lon)
                             .map(taf => ({
                                 ...taf,
                                 distance: this.calculateDistance(lat, lon, parseFloat(taf.lat), parseFloat(taf.lon))
-                            }))
-                            .sort((a, b) => a.distance - b.distance);
+                            }));
 
-                        if (candidates.length > 0) {
-                            const nearest = candidates[0];
-                            Utils.log(`Found TAF at ${nearest.icaoId} (${nearest.distance.toFixed(1)} nm away)`, 'info');
-                            return nearest;
+                        allCandidates = allCandidates.concat(candidates);
+
+                        // If we have enough options, stop searching
+                        if (allCandidates.length >= limit) {
+                            break;
                         }
                     }
                 } catch (error) {
@@ -175,11 +176,62 @@ const WeatherAPI = {
                 }
             }
 
-            Utils.log('No nearby TAF found within 150 nm', 'warn');
-            return null;
+            // Remove duplicates and sort by distance
+            const uniqueStations = new Map();
+            allCandidates.forEach(taf => {
+                if (!uniqueStations.has(taf.icaoId) || uniqueStations.get(taf.icaoId).distance > taf.distance) {
+                    uniqueStations.set(taf.icaoId, taf);
+                }
+            });
+
+            const sorted = Array.from(uniqueStations.values())
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, limit);
+
+            if (sorted.length > 0) {
+                Utils.log(`Found ${sorted.length} TAF options`, 'info');
+            } else {
+                Utils.log('No nearby TAFs found within 150 nm', 'warn');
+            }
+
+            return sorted;
         } catch (error) {
-            Utils.log(`Failed to find nearest TAF: ${error.message}`, 'error');
-            return null;
+            Utils.log(`Failed to find nearest TAFs: ${error.message}`, 'error');
+            return [];
+        }
+    },
+
+    /**
+     * Search for nearest TAF if direct TAF not available (backwards compatibility)
+     */
+    async findNearestTaf(station = this.config.station) {
+        const tafs = await this.findNearestTafs(station, 1);
+        return tafs.length > 0 ? tafs[0] : null;
+    },
+
+    /**
+     * Fetch TAF for a specific station (no fallback)
+     */
+    async fetchTafForStation(station) {
+        const url = `${this.workerUrl}/taf?ids=${station}&format=json`;
+
+        try {
+            Utils.log(`Fetching TAF for ${station}...`, 'info');
+            const response = await this.fetchWithRetry(url);
+            const text = await response.text();
+
+            if (text && text.trim().length > 0) {
+                const data = JSON.parse(text);
+                if (data && data.length > 0) {
+                    Utils.log(`TAF fetched for ${station}`, 'info');
+                    return data[0];
+                }
+            }
+
+            throw new Error(`No TAF available for ${station}`);
+        } catch (error) {
+            Utils.log(`Failed to fetch TAF for ${station}: ${error.message}`, 'error');
+            throw error;
         }
     },
 

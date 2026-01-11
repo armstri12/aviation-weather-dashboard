@@ -348,6 +348,36 @@
     background: rgba(8, 16, 30, 0.35);
 }
 
+/* TAF Station Selector */
+.taf-station-selector {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    background: rgba(8, 16, 30, 0.6);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.taf-station-selector:hover {
+    background: rgba(8, 16, 30, 0.8);
+    border-color: var(--text-muted);
+}
+
+.taf-station-selector:focus {
+    outline: none;
+    border-color: var(--vfr-primary);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.taf-station-selector option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0.5rem;
+}
+
 /* VFR Check */
 .vfr-check {
     background: var(--bg-tertiary);

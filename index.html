@@ -303,7 +303,12 @@
             <!-- TAF Timeline -->
             <section class="panel panel-taf">
                 <div class="panel-header">
-                    <h2>TAF Forecast</h2>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <h2>TAF Forecast</h2>
+                        <select id="tafStationSelector" class="taf-station-selector" aria-label="Select TAF station">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
                     <span class="taf-validity" id="tafValidity">Valid: --/--Z to --/--Z</span>
                 </div>
                 <div class="panel-content">

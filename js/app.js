@@ -8,6 +8,8 @@ const App = {
     state: {
         metar: null,
         taf: null,
+        tafStations: [],
+        selectedTafStation: null,
         aircraftStatus: {},
         lastUpdate: null,
         isLoading: true,
@@ -38,6 +40,9 @@ const App = {
 
         // Set up map tab switching
         this.setupMapTabs();
+
+        // Set up TAF station selector
+        await this.setupTafStationSelector();
 
         // Fetch initial data
         await this.loadWeatherData();
@@ -85,10 +90,18 @@ const App = {
         this.setLoading(true);
 
         try {
-            const { metar, taf } = await WeatherAPI.fetchAll();
-
+            // Fetch METAR for home airport
+            const metar = await WeatherAPI.fetchMetar(this.airport.icao);
             this.updateMetar(metar);
-            this.updateTaf(taf);
+
+            // Fetch TAF for selected station (if set) or home airport
+            if (this.state.selectedTafStation) {
+                // TAF already loaded by station selector
+                Utils.log(`Using TAF for selected station: ${this.state.selectedTafStation}`, 'info');
+            } else {
+                const taf = await WeatherAPI.fetchTaf(this.airport.icao);
+                this.updateTaf(taf);
+            }
 
             this.state.lastUpdate = new Date();
             this.state.hasError = false;
@@ -596,6 +609,117 @@ const App = {
                 this.state.currentMap = mapType;
             });
         });
+    },
+
+    /**
+     * Set up TAF station selector
+     */
+    async setupTafStationSelector() {
+        const selector = document.getElementById('tafStationSelector');
+        if (!selector) return;
+
+        // Load saved selection from localStorage
+        const savedStation = localStorage.getItem('selectedTafStation');
+
+        try {
+            // Try to fetch TAF for home airport first
+            const homeTaf = await WeatherAPI.fetchTafForStation(this.airport.icao).catch(() => null);
+
+            // Get nearby TAF stations
+            const nearbyStations = await WeatherAPI.findNearestTafs(this.airport.icao, 5);
+
+            // Build list of options
+            const options = [];
+
+            // Add home airport if TAF available
+            if (homeTaf) {
+                options.push({
+                    icaoId: this.airport.icao,
+                    distance: 0,
+                    label: `${this.airport.icao} (Home)`
+                });
+            }
+
+            // Add nearby stations
+            nearbyStations.forEach(station => {
+                if (station.icaoId !== this.airport.icao) {
+                    options.push({
+                        icaoId: station.icaoId,
+                        distance: station.distance,
+                        label: `${station.icaoId} (${station.distance.toFixed(0)} nm)`
+                    });
+                }
+            });
+
+            this.state.tafStations = options;
+
+            // Populate dropdown
+            selector.innerHTML = '';
+            options.forEach((option, index) => {
+                const optionEl = document.createElement('option');
+                optionEl.value = option.icaoId;
+                optionEl.textContent = option.label;
+                selector.appendChild(optionEl);
+            });
+
+            // Set initial selection and load TAF
+            let initialStation = null;
+            if (savedStation && options.some(opt => opt.icaoId === savedStation)) {
+                selector.value = savedStation;
+                initialStation = savedStation;
+            } else if (options.length > 0) {
+                selector.value = options[0].icaoId;
+                initialStation = options[0].icaoId;
+            }
+
+            if (initialStation) {
+                this.state.selectedTafStation = initialStation;
+                // Load initial TAF
+                await this.handleTafStationChange(initialStation);
+            }
+
+            // Add change event listener
+            selector.addEventListener('change', async (e) => {
+                await this.handleTafStationChange(e.target.value);
+            });
+
+            Utils.log(`TAF station selector initialized with ${options.length} options`, 'info');
+        } catch (error) {
+            Utils.log(`Failed to setup TAF station selector: ${error.message}`, 'error');
+            selector.innerHTML = '<option value="">No TAF available</option>';
+        }
+    },
+
+    /**
+     * Handle TAF station selection change
+     */
+    async handleTafStationChange(station) {
+        if (!station) return;
+
+        Utils.log(`Loading TAF for ${station}`, 'info');
+        this.state.selectedTafStation = station;
+
+        // Save selection to localStorage
+        localStorage.setItem('selectedTafStation', station);
+
+        try {
+            // Fetch TAF for selected station
+            const tafData = await WeatherAPI.fetchTafForStation(station);
+
+            // Add distance info if not home airport
+            if (station !== this.airport.icao) {
+                const stationInfo = this.state.tafStations.find(s => s.icaoId === station);
+                if (stationInfo && stationInfo.distance) {
+                    tafData.distance = stationInfo.distance;
+                }
+            }
+
+            // Update display
+            this.updateTaf(tafData);
+        } catch (error) {
+            Utils.log(`Failed to fetch TAF for ${station}: ${error.message}`, 'error');
+            this.handleError('taf', error);
+        }
     },
 
     /**
