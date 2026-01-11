@@ -446,7 +446,8 @@ const App = {
         const parts = [];
 
         // Determine if data is stale (older than 15 minutes)
-        const lastSeenTime = statusData.lastSeenTime ?? statusData.lastSeenTimestamp;
+        // Use timePosition (when position was updated) if available, otherwise fall back to lastContact
+        const lastSeenTime = statusData.lastSeenTime ?? statusData.timePosition ?? statusData.lastContact ?? statusData.lastSeenTimestamp;
         const now = Date.now();
         const dataAgeMs = lastSeenTime ? now - (lastSeenTime * 1000) : null;
         const isStale = dataAgeMs && dataAgeMs > 15 * 60 * 1000; // 15 minutes
@@ -509,7 +510,16 @@ const App = {
         const lat = statusData.latitude ?? statusData.lat;
         const lon = statusData.longitude ?? statusData.lon;
         if (typeof lat === 'number' && typeof lon === 'number') {
-            parts.push(`${lat.toFixed(4)}°, ${lon.toFixed(4)}°`);
+            let locationStr = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+
+            // Add position source indicator for data quality
+            if (typeof statusData.positionSource === 'number') {
+                const sources = ['ADS-B', 'ASTERIX', 'MLAT', 'FLARM'];
+                const source = sources[statusData.positionSource] || 'Unknown';
+                locationStr += ` (${source})`;
+            }
+
+            parts.push(locationStr);
         }
 
         return parts.length > 0 ? parts.join(' • ') : 'Unavailable';
