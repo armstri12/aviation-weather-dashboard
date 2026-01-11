@@ -90,21 +90,31 @@ async function handleAircraftStatus(url) {
       };
     }
 
+    // Convert units: OpenSky returns meters and m/s, we want feet and ft/min
+    const baroAltMeters = state[7];
+    const geoAltMeters = state[13];
+    const verticalRateMs = state[11];
+
     return {
       tailNumber: tail,
       icao24,
       callsign: state[1]?.trim() || null,
       originCountry: state[2] || null,
-      lastSeenTime: state[4] || data.time || null,
+      timePosition: state[3] || null,        // When position was last updated
+      lastContact: state[4] || null,         // When any message was last received
+      lastSeenTime: state[3] || state[4] || data.time || null, // Prefer position time
       longitude: state[5],
       latitude: state[6],
-      baroAltitude: state[7],
+      baroAltitude: baroAltMeters != null ? baroAltMeters * 3.28084 : null, // meters to feet
       onGround: state[8],
-      velocity: state[9],
+      velocity: state[9],                    // m/s (we convert to knots in frontend)
       trueTrack: state[10],
-      verticalRate: state[11],
-      geoAltitude: state[13],
-      squawk: state[14]
+      verticalRate: verticalRateMs != null ? verticalRateMs * 196.85 : null, // m/s to ft/min
+      geoAltitude: geoAltMeters != null ? geoAltMeters * 3.28084 : null,     // meters to feet
+      squawk: state[14],
+      spi: state[15] || false,               // Special purpose indicator
+      positionSource: state[16],             // 0=ADS-B, 1=ASTERIX, 2=MLAT, 3=FLARM
+      category: state[17]                    // Aircraft category (0-20)
     };
   });
 
