@@ -38,6 +38,33 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete setup instructions.
 
 ---
 
+### 2. Club Aircraft Status Worker (`aircraft-status-worker.js`)
+
+Fetches aircraft status from OpenSky and maps by tail number.
+
+**Purpose:**
+- Queries OpenSky state vectors for a list of ICAO24 addresses
+- Converts results to a tail-number keyed response
+- Adds CORS headers for browser access
+
+**Endpoints:**
+- `GET /health` - Health check and service info
+- `GET /aircraft-status?tails=N172WF,N519ER` - Status lookup for configured aircraft
+
+**Setup notes:**
+- Update `TAIL_TO_ICAO24` in `aircraft-status-worker.js` using the FAA registry lookup script.
+- OpenSky anonymous access is rate-limited; keep refresh intervals at 1-2 minutes.
+
+**Quick Start:**
+1. Create a new Worker named `aircraft-status`
+2. Copy code from `aircraft-status-worker.js`
+3. Deploy
+4. Update `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js` to
+   `https://aircraft-status.ian-284.workers.dev/aircraft-status`
+5. Run the FAA lookup script to fill `TAIL_TO_ICAO24`
+
+---
+
 ## Why Cloudflare Workers?
 
 **The Problem:**
