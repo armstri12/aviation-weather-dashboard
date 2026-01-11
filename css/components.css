@@ -306,6 +306,7 @@
     border-radius: var(--radius-sm);
     background: rgba(8, 16, 30, 0.5);
     border: 1px solid var(--border-primary);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .aircraft-row .label {
@@ -319,6 +320,21 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.9rem;
     color: var(--text-primary);
+}
+
+.aircraft-row.status-onground {
+    border-color: rgba(0, 200, 83, 0.45);
+    box-shadow: 0 0 8px rgba(0, 200, 83, 0.2);
+}
+
+.aircraft-row.status-inflight {
+    border-color: rgba(33, 150, 243, 0.5);
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.2);
+}
+
+.aircraft-row.status-unknown {
+    border-color: rgba(255, 183, 77, 0.4);
+    box-shadow: 0 0 8px rgba(255, 183, 77, 0.2);
 }
 
 .panel-empty-state {
