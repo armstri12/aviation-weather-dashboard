@@ -64,7 +64,9 @@ async function handleAircraftStatus(url) {
     .map(code => code.toLowerCase())
     .join(',');
 
-  const response = await fetch(`${OPEN_SKY_URL}?icao24=${encodeURIComponent(icao24List)}`);
+  const openSkyUrl = new URL(OPEN_SKY_URL);
+  openSkyUrl.searchParams.set('icao24', icao24List);
+  const response = await fetch(openSkyUrl.toString());
   if (!response.ok) {
     return jsonResponse({
       error: 'OpenSky request failed',
