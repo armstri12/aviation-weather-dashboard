@@ -11,8 +11,7 @@ const TAIL_TO_ICAO24 = {
   N172WF: 'A12295',
   N519ER: 'A68352',
   N73753: 'A9E82F',
-  N5232K: 'A696BB',
-  N547GJ: 'A6F28C'
+  N5232K: 'A696BB'
 };
 
 addEventListener('fetch', event => {
