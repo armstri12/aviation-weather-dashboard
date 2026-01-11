@@ -444,34 +444,72 @@ const App = {
         }
 
         const parts = [];
-        const onGround = typeof statusData.onGround === 'boolean'
-            ? statusData.onGround
-            : statusData.status?.toLowerCase().includes('ground');
 
-        const statusLabel = onGround === true
-            ? 'On Ground'
-            : onGround === false
-                ? 'In Flight'
-                : statusData.status;
+        // Determine if data is stale (older than 15 minutes)
+        const lastSeenTime = statusData.lastSeenTime ?? statusData.lastSeenTimestamp;
+        const now = Date.now();
+        const dataAgeMs = lastSeenTime ? now - (lastSeenTime * 1000) : null;
+        const isStale = dataAgeMs && dataAgeMs > 15 * 60 * 1000; // 15 minutes
+
+        // Determine ground status with better heuristics
+        let onGround = statusData.onGround;
+
+        // If we have altitude and velocity data, use it to refine ground status
+        if (typeof statusData.baroAltitude === 'number' && typeof statusData.velocity === 'number') {
+            // If altitude is very low (< 100 feet) and velocity is very low (< 5 m/s ≈ 10 knots), likely on ground
+            if (statusData.baroAltitude < 100 && statusData.velocity < 5) {
+                onGround = true;
+            }
+        }
+
+        // Format status label
+        let statusLabel;
+        if (statusData.status === 'No Signal') {
+            statusLabel = 'No Signal';
+        } else if (typeof onGround === 'boolean') {
+            if (isStale) {
+                statusLabel = onGround ? 'Last Known: On Ground' : 'Last Known: In Flight';
+            } else {
+                statusLabel = onGround ? 'On Ground' : 'In Flight';
+            }
+        } else {
+            statusLabel = statusData.status;
+        }
 
         if (statusLabel) {
             parts.push(statusLabel);
         }
 
-        const lastSeenTime = statusData.lastSeenTime ?? statusData.lastSeenTimestamp;
-        const seenLabel = statusData.isStale ? 'Last known' : 'Seen';
+        // Add last seen time
+        const seenLabel = isStale ? 'Last seen' : 'Seen';
         if (typeof lastSeenTime === 'number' && lastSeenTime > 0) {
             parts.push(`${seenLabel} ${Utils.formatZuluMinutes(new Date(lastSeenTime * 1000))}`);
         } else if (statusData.lastSeen) {
             parts.push(`${seenLabel} ${statusData.lastSeen}`);
-        } else if (statusData.airportName) {
-            parts.push(statusData.airportName);
         }
 
+        // Add altitude if available
+        const altitude = statusData.baroAltitude ?? statusData.geoAltitude;
+        if (typeof altitude === 'number') {
+            parts.push(`${Math.round(altitude)} ft`);
+        }
+
+        // Add heading/track if available and aircraft is moving
+        if (typeof statusData.trueTrack === 'number' && !onGround) {
+            parts.push(`HDG ${Math.round(statusData.trueTrack)}°`);
+        }
+
+        // Add speed if available and aircraft is moving
+        if (typeof statusData.velocity === 'number' && !onGround) {
+            const speedKnots = Math.round(statusData.velocity * 1.94384); // m/s to knots
+            parts.push(`${speedKnots} kts`);
+        }
+
+        // Add location coordinates
         const lat = statusData.latitude ?? statusData.lat;
         const lon = statusData.longitude ?? statusData.lon;
         if (typeof lat === 'number' && typeof lon === 'number') {
-            parts.push(`${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+            parts.push(`${lat.toFixed(4)}°, ${lon.toFixed(4)}°`);
         }
 
         return parts.length > 0 ? parts.join(' • ') : 'Unavailable';
@@ -485,8 +523,18 @@ const App = {
             return 'status-unknown';
         }
 
-        if (typeof statusData.onGround === 'boolean') {
-            return statusData.onGround ? 'status-onground' : 'status-inflight';
+        // Use same logic as formatAircraftStatus for consistency
+        let onGround = statusData.onGround;
+
+        // Refine ground status using altitude and velocity
+        if (typeof statusData.baroAltitude === 'number' && typeof statusData.velocity === 'number') {
+            if (statusData.baroAltitude < 100 && statusData.velocity < 5) {
+                onGround = true;
+            }
+        }
+
+        if (typeof onGround === 'boolean') {
+            return onGround ? 'status-onground' : 'status-inflight';
         }
 
         if (statusData.status) {
@@ -496,6 +544,9 @@ const App = {
             }
             if (normalized.includes('flight') || normalized.includes('air')) {
                 return 'status-inflight';
+            }
+            if (normalized.includes('no signal')) {
+                return 'status-unknown';
             }
         }
 
