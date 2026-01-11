@@ -6,6 +6,51 @@ This guide walks you through deploying the airport chart proxy worker.
 
 ---
 
+## Club Aircraft Status Worker Setup
+
+This worker proxies OpenSky state vectors and returns tail-number keyed results for the dashboard.
+
+### Step 1: Create Worker
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Navigate to **Workers & Pages**
+3. Click **Create Application** → **Create Worker**
+4. Name it: `aircraft-status` (or any name you prefer)
+5. Click **Deploy**
+
+### Step 2: Edit Worker Code
+
+1. After deployment, click **Edit Code**
+2. Delete all existing code in the editor
+3. Copy the contents of `cloudflare-workers/aircraft-status-worker.js`
+4. Paste into the editor
+5. Click **Save and Deploy**
+
+### Step 3: Update ICAO24 Mappings
+
+1. Run the lookup script to generate ICAO24 mappings:
+   ```bash
+   python3 scripts/lookup-icao24.py N172WF N519ER N73753 N5232K
+   ```
+2. Copy the output object into `TAIL_TO_ICAO24` in `aircraft-status-worker.js`
+3. Save and redeploy the worker
+
+### Step 4: Update Dashboard Endpoint
+
+Update `js/api.js`:
+
+```javascript
+aircraftStatusEndpoint: 'https://aircraft-status.ian-284.workers.dev/aircraft-status',
+```
+
+### Step 5: Test It
+
+Visit your worker URL in a browser:
+- `https://aircraft-status.ian-284.workers.dev/health`
+- `https://aircraft-status.ian-284.workers.dev/aircraft-status?tails=N172WF`
+
+---
+
 ## Prerequisites
 
 1. **Cloudflare Account** (free tier works fine)

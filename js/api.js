@@ -24,7 +24,7 @@ const WeatherAPI = {
         tafRefreshInterval: 30 * 60 * 1000,   // 30 minutes
         imageRefreshInterval: 5 * 60 * 1000,  // 5 minutes
         aircraftStatusRefreshInterval: 2 * 60 * 1000, // 2 minutes
-        aircraftStatusEndpoint: 'https://weather-proxy.ian-284.workers.dev/aircraft-status',
+        aircraftStatusEndpoint: 'https://aircraft-status.ian-284.workers.dev/aircraft-status',
         maxRetries: 3,
         retryDelay: 2000
     },

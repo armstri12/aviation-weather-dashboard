@@ -11,6 +11,7 @@ A real-time aviation weather display optimized for Raspberry Pi, designed for VF
 - **Crosswind calculator** for both runways (05/23 and 14/32)
 - **TAF timeline** showing 24-hour forecast
 - **Weather radar and satellite imagery**
+- **Club aircraft status** with tail-number tracking (OpenSky + FAA registry lookup)
 - **VFR minimums check** for Class D airspace
 - **Density altitude calculator**
 - **Quick links** to aviation weather resources
@@ -117,6 +118,18 @@ config: {
 - **METAR/TAF**: [Aviation Weather Center](https://aviationweather.gov)
 - **Radar**: [NWS Radar](https://radar.weather.gov)
 - **Satellite**: [GOES-16](https://www.star.nesdis.noaa.gov)
+- **Aircraft status**: [OpenSky Network](https://opensky-network.org/)
+
+## Club Aircraft Status Setup
+
+1. Deploy the Cloudflare worker in `cloudflare-workers/aircraft-status-worker.js`.
+2. Run the FAA registry lookup script to map tail numbers to ICAO24:
+   ```bash
+   python3 scripts/lookup-icao24.py N172WF N519ER N73753 N5232K
+   ```
+3. Paste the output into `TAIL_TO_ICAO24` in the worker, redeploy, and update
+   `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js` to use
+   `https://aircraft-status.ian-284.workers.dev/aircraft-status`.
 
 ## Troubleshooting
 
