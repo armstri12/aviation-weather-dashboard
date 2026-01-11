@@ -40,14 +40,14 @@ This worker proxies OpenSky state vectors and returns tail-number keyed results 
 Update `js/api.js`:
 
 ```javascript
-aircraftStatusEndpoint: 'https://aircraft-status.YOUR-USERNAME.workers.dev/aircraft-status',
+aircraftStatusEndpoint: 'https://aircraft-status.ian-284.workers.dev/aircraft-status',
 ```
 
 ### Step 5: Test It
 
 Visit your worker URL in a browser:
-- `https://aircraft-status.YOUR-USERNAME.workers.dev/health`
-- `https://aircraft-status.YOUR-USERNAME.workers.dev/aircraft-status?tails=N172WF`
+- `https://aircraft-status.ian-284.workers.dev/health`
+- `https://aircraft-status.ian-284.workers.dev/aircraft-status?tails=N172WF`
 
 ---
 

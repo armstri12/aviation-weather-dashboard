@@ -398,10 +398,17 @@ const App = {
             if (!valueEl || !tailNumber) return;
 
             const statusData = statusMap[tailNumber];
-            if (statusData) {
-                valueEl.textContent = this.formatAircraftStatus(statusData);
+            const cachedStatus = this.state.aircraftStatus?.[tailNumber];
+            const effectiveStatus = statusData || cachedStatus;
+
+            if (effectiveStatus) {
+                const formatted = this.formatAircraftStatus({
+                    ...effectiveStatus,
+                    isStale: !statusData && !!cachedStatus
+                });
+                valueEl.textContent = formatted;
                 row.classList.remove('status-onground', 'status-inflight', 'status-unknown');
-                row.classList.add(this.getAircraftStatusClass(statusData));
+                row.classList.add(this.getAircraftStatusClass(effectiveStatus));
                 hasData = true;
             } else if (options.unavailable) {
                 valueEl.textContent = 'Unavailable';
@@ -423,7 +430,9 @@ const App = {
             }
         }
 
-        this.state.aircraftStatus = statusMap;
+        if (Object.keys(statusMap).length > 0) {
+            this.state.aircraftStatus = statusMap;
+        }
     },
 
     /**
@@ -439,19 +448,22 @@ const App = {
             ? statusData.onGround
             : statusData.status?.toLowerCase().includes('ground');
 
-        if (onGround === true) {
-            parts.push('On Ground');
-        } else if (onGround === false) {
-            parts.push('In Flight');
-        } else if (statusData.status) {
-            parts.push(statusData.status);
+        const statusLabel = onGround === true
+            ? 'On Ground'
+            : onGround === false
+                ? 'In Flight'
+                : statusData.status;
+
+        if (statusLabel) {
+            parts.push(statusLabel);
         }
 
         const lastSeenTime = statusData.lastSeenTime ?? statusData.lastSeenTimestamp;
+        const seenLabel = statusData.isStale ? 'Last known' : 'Seen';
         if (typeof lastSeenTime === 'number' && lastSeenTime > 0) {
-            parts.push(`Seen ${Utils.formatZuluMinutes(new Date(lastSeenTime * 1000))}`);
+            parts.push(`${seenLabel} ${Utils.formatZuluMinutes(new Date(lastSeenTime * 1000))}`);
         } else if (statusData.lastSeen) {
-            parts.push(`Seen ${statusData.lastSeen}`);
+            parts.push(`${seenLabel} ${statusData.lastSeen}`);
         } else if (statusData.airportName) {
             parts.push(statusData.airportName);
         }

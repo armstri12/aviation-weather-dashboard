@@ -59,7 +59,8 @@ Fetches aircraft status from OpenSky and maps by tail number.
 1. Create a new Worker named `aircraft-status`
 2. Copy code from `aircraft-status-worker.js`
 3. Deploy
-4. Update `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js`
+4. Update `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js` to
+   `https://aircraft-status.ian-284.workers.dev/aircraft-status`
 5. Run the FAA lookup script to fill `TAIL_TO_ICAO24`
 
 ---

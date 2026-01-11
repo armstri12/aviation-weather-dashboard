@@ -128,7 +128,8 @@ config: {
    python3 scripts/lookup-icao24.py N172WF N519ER N73753 N5232K
    ```
 3. Paste the output into `TAIL_TO_ICAO24` in the worker, redeploy, and update
-   `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js`.
+   `WeatherAPI.config.aircraftStatusEndpoint` in `js/api.js` to use
+   `https://aircraft-status.ian-284.workers.dev/aircraft-status`.
 
 ## Troubleshooting
 
