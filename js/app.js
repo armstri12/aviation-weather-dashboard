@@ -400,11 +400,17 @@ const App = {
             const statusData = statusMap[tailNumber];
             if (statusData) {
                 valueEl.textContent = this.formatAircraftStatus(statusData);
+                row.classList.remove('status-onground', 'status-inflight', 'status-unknown');
+                row.classList.add(this.getAircraftStatusClass(statusData));
                 hasData = true;
             } else if (options.unavailable) {
                 valueEl.textContent = 'Unavailable';
+                row.classList.remove('status-onground', 'status-inflight');
+                row.classList.add('status-unknown');
             } else {
                 valueEl.textContent = '--';
+                row.classList.remove('status-onground', 'status-inflight');
+                row.classList.add('status-unknown');
             }
         });
 
@@ -429,12 +435,23 @@ const App = {
         }
 
         const parts = [];
-        if (statusData.status) {
+        const onGround = typeof statusData.onGround === 'boolean'
+            ? statusData.onGround
+            : statusData.status?.toLowerCase().includes('ground');
+
+        if (onGround === true) {
+            parts.push('On Ground');
+        } else if (onGround === false) {
+            parts.push('In Flight');
+        } else if (statusData.status) {
             parts.push(statusData.status);
         }
 
-        if (statusData.lastSeen) {
-            parts.push(`Last seen at ${statusData.lastSeen}`);
+        const lastSeenTime = statusData.lastSeenTime ?? statusData.lastSeenTimestamp;
+        if (typeof lastSeenTime === 'number' && lastSeenTime > 0) {
+            parts.push(`Seen ${Utils.formatZuluMinutes(new Date(lastSeenTime * 1000))}`);
+        } else if (statusData.lastSeen) {
+            parts.push(`Seen ${statusData.lastSeen}`);
         } else if (statusData.airportName) {
             parts.push(statusData.airportName);
         }
@@ -446,6 +463,31 @@ const App = {
         }
 
         return parts.length > 0 ? parts.join(' • ') : 'Unavailable';
+    },
+
+    /**
+     * Get CSS class for aircraft status
+     */
+    getAircraftStatusClass(statusData) {
+        if (!statusData) {
+            return 'status-unknown';
+        }
+
+        if (typeof statusData.onGround === 'boolean') {
+            return statusData.onGround ? 'status-onground' : 'status-inflight';
+        }
+
+        if (statusData.status) {
+            const normalized = statusData.status.toLowerCase();
+            if (normalized.includes('ground')) {
+                return 'status-onground';
+            }
+            if (normalized.includes('flight') || normalized.includes('air')) {
+                return 'status-inflight';
+            }
+        }
+
+        return 'status-unknown';
     },
 
     /**
