@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=800, height=480, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KUGN Aviation Weather</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/colors.css">
+    <link rel="stylesheet" href="css/touchscreen.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+    <div class="ts-dashboard">
+        <!-- Compact Header -->
+        <header class="ts-header">
+            <div class="ts-header-left">
+                <span class="ts-airport-id">KUGN</span>
+                <div class="ts-flight-cat" id="flightCategory">
+                    <span class="category-label">VFR</span>
+                </div>
+            </div>
+            <div class="ts-header-right">
+                <span class="ts-update-time" id="updateTime">--:--Z</span>
+                <span class="ts-clock-zulu" id="clockZulu">00:00Z</span>
+                <span class="ts-clock-local" id="clockLocal">00:00L</span>
+            </div>
+        </header>
+
+        <!-- Tab Content Area -->
+        <main class="ts-content">
+            <!-- Tab: Conditions -->
+            <section class="ts-tab-panel active" id="tab-conditions">
+                <div class="ts-conditions-grid">
+                    <!-- Flight Category Hero -->
+                    <div class="ts-cat-hero" id="tsCatHero">
+                        <span class="ts-cat-label" id="tsCatLabel">VFR</span>
+                        <span class="ts-cat-sub">Flight Category</span>
+                    </div>
+
+                    <!-- Primary Conditions -->
+                    <div class="ts-cond-card">
+                        <span class="ts-cond-label">Ceiling</span>
+                        <span class="ts-cond-value" id="ceiling">----</span>
+                        <span class="ts-cond-unit">FT AGL</span>
+                    </div>
+                    <div class="ts-cond-card">
+                        <span class="ts-cond-label">Visibility</span>
+                        <span class="ts-cond-value" id="visibility">--</span>
+                        <span class="ts-cond-unit">SM</span>
+                    </div>
+                    <div class="ts-cond-card">
+                        <span class="ts-cond-label">Wind</span>
+                        <span class="ts-cond-value" id="wind">---°/--</span>
+                        <span class="ts-cond-unit">KT</span>
+                    </div>
+                    <div class="ts-cond-card" id="gustsContainer">
+                        <span class="ts-cond-label">Gusts</span>
+                        <span class="ts-cond-value" id="gusts">--</span>
+                        <span class="ts-cond-unit">KT</span>
+                    </div>
+
+                    <!-- Secondary Row -->
+                    <div class="ts-secondary-row">
+                        <div class="ts-sec-item">
+                            <span class="ts-sec-label">Alt</span>
+                            <span class="ts-sec-value" id="altimeter">--.--</span>
+                        </div>
+                        <div class="ts-sec-item">
+                            <span class="ts-sec-label">Temp</span>
+                            <span class="ts-sec-value" id="temperature">--°C</span>
+                        </div>
+                        <div class="ts-sec-item">
+                            <span class="ts-sec-label">Dew</span>
+                            <span class="ts-sec-value" id="dewpoint">--°C</span>
+                        </div>
+                        <div class="ts-sec-item">
+                            <span class="ts-sec-label">DA</span>
+                            <span class="ts-sec-value" id="densityAlt">----</span>
+                        </div>
+                    </div>
+
+                    <!-- VFR Check -->
+                    <div class="ts-vfr-check" id="vfrCheck">
+                        <span class="vfr-icon">✓</span>
+                        <span class="vfr-text">VFR Minimums Met</span>
+                    </div>
+
+                    <!-- Weather -->
+                    <div class="ts-weather-row">
+                        <span class="ts-sec-label">WX</span>
+                        <span class="ts-sec-value weather-phenomena" id="weather">CLR</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Airport / Wind -->
+            <section class="ts-tab-panel" id="tab-airport">
+                <div class="ts-airport-content">
+                    <div class="ts-diagram-wrap">
+                        <div class="airport-diagram" id="airportDiagram">
+                            <div class="diagram-stage" aria-label="Airport runway layout">
+                                <svg class="airport-visual" viewBox="0 0 600 600" role="img" aria-label="Runway layout with wind indicator">
+                                <defs>
+                                    <filter id="glow">
+                                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                        <feMerge>
+                                            <feMergeNode in="coloredBlur"/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                                        <path d="M0,0 L10,5 L0,10 L3,5 Z" fill="#00D4FF"/>
+                                    </marker>
+                                </defs>
+
+                                <rect x="24" y="24" width="552" height="552" rx="32" fill="rgba(8, 16, 30, 0.85)" stroke="rgba(0, 212, 255, 0.25)" stroke-width="2"/>
+                                <circle cx="300" cy="300" r="220" fill="none" stroke="rgba(0, 212, 255, 0.18)" stroke-width="2" stroke-dasharray="6 10"/>
+                                <circle cx="300" cy="300" r="140" fill="none" stroke="rgba(0, 212, 255, 0.12)" stroke-width="1.5" stroke-dasharray="4 8"/>
+
+                                <text x="300" y="80" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">N</text>
+                                <text x="300" y="532" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">S</text>
+                                <text x="78" y="308" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">W</text>
+                                <text x="522" y="308" text-anchor="middle" fill="#6b8cae" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="3">E</text>
+
+                                <g class="runway-shape" transform="translate(300 300) rotate(50)">
+                                    <rect x="-26" y="-210" width="52" height="420" rx="12" fill="#242a33" stroke="#5f6b7a" stroke-width="3"/>
+                                    <line x1="0" y1="-190" x2="0" y2="190" stroke="rgba(255,255,255,0.75)" stroke-width="3" stroke-dasharray="18 12"/>
+                                    <text x="0" y="-155" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">05</text>
+                                    <text x="0" y="165" text-anchor="middle" fill="#e6eef7" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600" transform="rotate(-50)">23</text>
+                                </g>
+
+                                <g class="runway-shape secondary" transform="translate(300 300) rotate(140)">
+                                    <rect x="-18" y="-130" width="36" height="260" rx="10" fill="#1d222a" stroke="#4c5664" stroke-width="2"/>
+                                    <line x1="0" y1="-110" x2="0" y2="110" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-dasharray="14 10"/>
+                                    <text x="0" y="-96" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">14</text>
+                                    <text x="0" y="104" text-anchor="middle" fill="#c4ceda" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" transform="rotate(-140)">32</text>
+                                </g>
+
+                                <text x="300" y="120" text-anchor="middle" fill="#00D4FF" font-family="Orbitron, monospace" font-size="22" letter-spacing="6">KUGN</text>
+                                <text x="300" y="146" text-anchor="middle" fill="#6b8cae" font-family="Inter, sans-serif" font-size="12">Waukegan National</text>
+
+                                <g id="windDirectionArrow" class="wind-direction-arrow" data-center-x="300" data-center-y="300">
+                                    <line x1="300" y1="300" x2="300" y2="120" stroke="#00D4FF" stroke-width="6" marker-end="url(#arrowhead)"/>
+                                    <circle cx="300" cy="300" r="14" fill="#00D4FF" stroke="#FFF" stroke-width="2"/>
+                                    <text x="300" y="340" text-anchor="middle" fill="#00D4FF" font-family="JetBrains Mono, monospace" font-size="18" font-weight="bold" id="windDirText">---°</text>
+                                </g>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crosswind strip at bottom -->
+                    <div class="ts-crosswind-strip">
+                        <div class="ts-xwind-row">
+                            <span class="ts-xwind-rwy">05/23</span>
+                            <div class="crosswind-bar"><div class="crosswind-fill" id="xwind-bar-05"></div></div>
+                            <span class="ts-xwind-val" id="xwind-05">--</span>
+                            <span class="crosswind-status" id="xwind-status-05">--</span>
+                        </div>
+                        <div class="ts-xwind-row">
+                            <span class="ts-xwind-rwy">14/32</span>
+                            <div class="crosswind-bar"><div class="crosswind-fill" id="xwind-bar-14"></div></div>
+                            <span class="ts-xwind-val" id="xwind-14">--</span>
+                            <span class="crosswind-status" id="xwind-status-14">--</span>
+                        </div>
+                        <div class="ts-recommended">
+                            <span class="ts-rec-label">RWY:</span>
+                            <span class="ts-rec-value" id="recommendedRunway">--</span>
+                            <span class="ts-wind-summary" id="windSummary">---° @ -- KT</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Weather Imagery -->
+            <section class="ts-tab-panel" id="tab-weather">
+                <div class="ts-weather-content">
+                    <!-- Sub-tabs for imagery type -->
+                    <div class="ts-img-tabs">
+                        <button class="ts-img-tab active" data-map="radar">Radar</button>
+                        <button class="ts-img-tab" data-map="satellite">Satellite</button>
+                        <button class="ts-img-tab" data-map="surface">Surface</button>
+                    </div>
+                    <div class="ts-map-area">
+                        <div class="ts-map-frame" id="radarMap">
+                            <img src="https://radar.weather.gov/ridge/standard/KLOT_loop.gif" alt="Chicago Area Radar" id="radarImg">
+                            <div class="ts-map-label">Chicago Area Radar (KLOT)</div>
+                        </div>
+                        <div class="ts-map-frame hidden" id="satelliteMap">
+                            <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/umv/GEOCOLOR/600x600.jpg" alt="GOES-16 Satellite" id="satelliteImg">
+                            <div class="ts-map-label">GOES-16 Upper Midwest</div>
+                        </div>
+                        <div class="ts-map-frame hidden" id="surfaceMap">
+                            <img src="https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif" alt="Surface Analysis" id="surfaceImg">
+                            <div class="ts-map-label">WPC Surface Analysis</div>
+                        </div>
+                    </div>
+                    <!-- Hazards -->
+                    <div class="ts-hazard-row" id="hazardIndicators">
+                        <div class="ts-hazard" id="sigmetStatus">
+                            <span class="ts-hazard-icon">⚠</span>
+                            <span class="ts-hazard-lbl">SIGMET</span>
+                            <span class="hazard-value none">None</span>
+                        </div>
+                        <div class="ts-hazard" id="airmetStatus">
+                            <span class="ts-hazard-icon">△</span>
+                            <span class="ts-hazard-lbl">AIRMET</span>
+                            <span class="hazard-value none">None</span>
+                        </div>
+                        <div class="ts-hazard" id="tfrStatus">
+                            <span class="ts-hazard-icon">⊘</span>
+                            <span class="ts-hazard-lbl">TFR</span>
+                            <span class="hazard-value none">None</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Aircraft -->
+            <section class="ts-tab-panel" id="tab-aircraft">
+                <div class="ts-aircraft-content">
+                    <h2 class="ts-panel-title">Club Aircraft Status</h2>
+                    <div class="ts-aircraft-list">
+                        <div class="ts-aircraft-card" id="aircraft-N172WF" data-tail-number="N172WF">
+                            <span class="ts-tail">N172WF</span>
+                            <span class="ts-ac-status value">--</span>
+                        </div>
+                        <div class="ts-aircraft-card" id="aircraft-N519ER" data-tail-number="N519ER">
+                            <span class="ts-tail">N519ER</span>
+                            <span class="ts-ac-status value">--</span>
+                        </div>
+                        <div class="ts-aircraft-card" id="aircraft-N73753" data-tail-number="N73753">
+                            <span class="ts-tail">N73753</span>
+                            <span class="ts-ac-status value">--</span>
+                        </div>
+                        <div class="ts-aircraft-card" id="aircraft-N5232K" data-tail-number="N5232K">
+                            <span class="ts-tail">N5232K</span>
+                            <span class="ts-ac-status value">--</span>
+                        </div>
+                    </div>
+                    <div class="panel-empty-state" id="aircraftEmptyState">No data yet.</div>
+                </div>
+            </section>
+
+            <!-- Tab: Forecast -->
+            <section class="ts-tab-panel" id="tab-forecast">
+                <div class="ts-forecast-content">
+                    <div class="ts-taf-header">
+                        <h2 class="ts-panel-title">TAF Forecast</h2>
+                        <span class="ts-taf-validity" id="tafValidity">--/--Z to --/--Z</span>
+                    </div>
+                    <div class="ts-taf-chart">
+                        <canvas id="tafTimeline"></canvas>
+                    </div>
+                    <div class="ts-taf-legend">
+                        <span class="taf-legend-item"><span class="taf-legend-swatch vfr"></span>VFR</span>
+                        <span class="taf-legend-item"><span class="taf-legend-swatch mvfr"></span>MVFR</span>
+                        <span class="taf-legend-item"><span class="taf-legend-swatch ifr"></span>IFR</span>
+                        <span class="taf-legend-item"><span class="taf-legend-swatch lifr"></span>LIFR</span>
+                    </div>
+                    <div class="ts-taf-raw">
+                        <h3>Raw TAF</h3>
+                        <code id="rawTaf">Loading...</code>
+                    </div>
+                    <div class="ts-metar-raw">
+                        <h3>Raw METAR</h3>
+                        <code id="rawMetar">Loading...</code>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Tab Bar -->
+        <nav class="ts-tab-bar">
+            <button class="ts-tab active" data-tab="conditions">
+                <svg class="ts-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"/>
+                </svg>
+                <span>WX</span>
+            </button>
+            <button class="ts-tab" data-tab="airport">
+                <svg class="ts-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <span>RWY</span>
+            </button>
+            <button class="ts-tab" data-tab="weather">
+                <svg class="ts-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span>MAP</span>
+            </button>
+            <button class="ts-tab" data-tab="aircraft">
+                <svg class="ts-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+                </svg>
+                <span>AC</span>
+            </button>
+            <button class="ts-tab" data-tab="forecast">
+                <svg class="ts-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>TAF</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/metar-parser.js"></script>
+    <script src="js/taf-parser.js"></script>
+    <script src="js/crosswind.js"></script>
+    <script src="js/airport-diagram.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/touchscreen.js"></script>
+</body>
+</html>

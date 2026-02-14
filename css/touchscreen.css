@@ -1,0 +1,828 @@
+/* Aviation Weather Dashboard - Touchscreen Layout
+ * Optimized for Freenove FNK0078 (800x480 5" touchscreen)
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+html, body {
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+
+/* ==================== Dashboard Shell ==================== */
+
+.ts-dashboard {
+    display: flex;
+    flex-direction: column;
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+}
+
+/* ==================== Compact Header (36px) ==================== */
+
+.ts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.ts-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ts-airport-id {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+}
+
+.ts-flight-cat {
+    padding: 2px 12px;
+    border-radius: 4px;
+    border: 2px solid;
+    animation: glowPulse 3s ease-in-out infinite;
+}
+
+.ts-flight-cat .category-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+
+.ts-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ts-update-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.ts-clock-zulu {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+}
+
+.ts-clock-local {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ==================== Content Area ==================== */
+
+.ts-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    /* 480 - 36 header - 56 tab bar = 388px */
+    height: 388px;
+}
+
+.ts-tab-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    display: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ts-tab-panel.active {
+    display: block;
+}
+
+/* Scrollbar for touch panels */
+.ts-tab-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ts-tab-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ts-tab-panel::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: 2px;
+}
+
+/* ==================== Bottom Tab Bar (56px) ==================== */
+
+.ts-tab-bar {
+    display: flex;
+    height: 56px;
+    min-height: 56px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+}
+
+.ts-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+    position: relative;
+}
+
+.ts-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    background: var(--accent-cyan);
+    border-radius: 0 0 3px 3px;
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+}
+
+.ts-tab.active {
+    color: var(--accent-cyan);
+}
+
+.ts-tab.active::before {
+    transform: scaleX(1);
+}
+
+.ts-tab:active {
+    background: rgba(0, 212, 255, 0.08);
+}
+
+.ts-tab-icon {
+    width: 22px;
+    height: 22px;
+}
+
+/* ==================== Tab: Conditions ==================== */
+
+.ts-conditions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 6px;
+}
+
+.ts-cat-hero {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border: 2px solid;
+    border-radius: 8px;
+    animation: glowPulse 3s ease-in-out infinite;
+}
+
+.ts-cat-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: 6px;
+}
+
+.ts-cat-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ts-cond-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.ts-cond-label {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.ts-cond-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.ts-cond-unit {
+    font-size: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.ts-secondary-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+}
+
+.ts-sec-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.ts-sec-label {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ts-sec-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.ts-vfr-check {
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--success);
+    border-radius: 6px;
+}
+
+.ts-vfr-check .vfr-icon {
+    font-size: 1rem;
+    color: var(--success);
+}
+
+.ts-vfr-check .vfr-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.ts-vfr-check.not-met {
+    border-left-color: var(--danger);
+}
+
+.ts-vfr-check.not-met .vfr-icon {
+    color: var(--danger);
+}
+
+.ts-weather-row {
+    grid-column: 3 / 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+}
+
+.ts-weather-row .weather-phenomena {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+/* ==================== Tab: Airport / Wind ==================== */
+
+.ts-airport-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ts-diagram-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.ts-diagram-wrap .airport-diagram {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+}
+
+.ts-diagram-wrap .diagram-stage {
+    width: 280px;
+    height: 270px;
+    border-radius: 8px;
+    background: radial-gradient(circle at top, rgba(0, 212, 255, 0.08), transparent 60%),
+        linear-gradient(180deg, rgba(9, 18, 34, 0.95), rgba(6, 12, 22, 0.9));
+    box-shadow: inset 0 0 12px rgba(0, 212, 255, 0.12);
+    border: 1px solid rgba(0, 212, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ts-diagram-wrap .airport-visual {
+    width: 100%;
+    height: 100%;
+}
+
+/* Crosswind strip */
+.ts-crosswind-strip {
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ts-xwind-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 40px 28px;
+    align-items: center;
+    gap: 8px;
+}
+
+.ts-xwind-rwy {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ts-crosswind-strip .crosswind-bar {
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ts-crosswind-strip .crosswind-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ts-xwind-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.ts-crosswind-strip .crosswind-status {
+    font-size: 1rem;
+    text-align: center;
+}
+
+.ts-recommended {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border-primary);
+}
+
+.ts-rec-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.ts-rec-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    color: var(--success);
+    font-weight: 600;
+}
+
+.ts-wind-summary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent-cyan);
+    margin-left: auto;
+}
+
+/* ==================== Tab: Weather Imagery ==================== */
+
+.ts-weather-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 6px;
+}
+
+.ts-img-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.ts-img-tab {
+    flex: 1;
+    padding: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.ts-img-tab.active {
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: var(--bg-primary);
+}
+
+.ts-img-tab:active {
+    opacity: 0.8;
+}
+
+.ts-map-area {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.ts-map-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ts-map-frame img {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    object-fit: contain;
+    background: var(--bg-primary);
+}
+
+.ts-map-label {
+    padding: 4px;
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+}
+
+.ts-hazard-row {
+    display: flex;
+    gap: 6px;
+}
+
+.ts-hazard {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+}
+
+.ts-hazard-icon {
+    font-size: 0.85rem;
+}
+
+.ts-hazard-lbl {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.ts-hazard .hazard-value {
+    font-size: 0.65rem;
+    font-weight: 500;
+}
+
+.ts-hazard .hazard-value.none {
+    color: var(--success);
+}
+
+.ts-hazard .hazard-value.active {
+    color: var(--warning);
+}
+
+/* ==================== Tab: Aircraft ==================== */
+
+.ts-aircraft-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ts-panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.ts-aircraft-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ts-aircraft-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ts-tail {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.ts-ac-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: right;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Reuse aircraft status classes */
+.ts-aircraft-card.status-onground {
+    border-color: rgba(0, 200, 83, 0.45);
+    box-shadow: 0 0 6px rgba(0, 200, 83, 0.15);
+}
+
+.ts-aircraft-card.status-inflight {
+    border-color: rgba(33, 150, 243, 0.5);
+    box-shadow: 0 0 6px rgba(33, 150, 243, 0.15);
+}
+
+.ts-aircraft-card.status-unknown {
+    border-color: rgba(255, 183, 77, 0.4);
+    box-shadow: 0 0 6px rgba(255, 183, 77, 0.15);
+}
+
+.ts-aircraft-content .panel-empty-state {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 12px;
+    border: 1px dashed var(--border-primary);
+    border-radius: 6px;
+}
+
+/* ==================== Tab: Forecast ==================== */
+
+.ts-forecast-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+}
+
+.ts-taf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ts-taf-validity {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.ts-taf-chart {
+    flex: 1;
+    min-height: 120px;
+    max-height: 180px;
+    position: relative;
+}
+
+.ts-taf-chart canvas {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.ts-taf-legend {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 4px;
+}
+
+.ts-taf-legend .taf-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.ts-taf-legend .taf-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ts-taf-legend .taf-legend-swatch.vfr { background: rgba(0, 200, 83, 0.8); }
+.ts-taf-legend .taf-legend-swatch.mvfr { background: rgba(33, 150, 243, 0.8); }
+.ts-taf-legend .taf-legend-swatch.ifr { background: rgba(244, 67, 54, 0.8); }
+.ts-taf-legend .taf-legend-swatch.lifr { background: rgba(224, 64, 251, 0.8); }
+
+.ts-taf-raw,
+.ts-metar-raw {
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+.ts-taf-raw h3,
+.ts-metar-raw h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.ts-taf-raw code,
+.ts-metar-raw code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* ==================== Animations ==================== */
+
+@keyframes glowPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+}
+
+/* Swipe transition */
+.ts-tab-panel.slide-out-left {
+    animation: slideOutLeft 0.25s ease-in forwards;
+}
+
+.ts-tab-panel.slide-in-right {
+    animation: slideInRight 0.25s ease-out forwards;
+}
+
+.ts-tab-panel.slide-out-right {
+    animation: slideOutRight 0.25s ease-in forwards;
+}
+
+.ts-tab-panel.slide-in-left {
+    animation: slideInLeft 0.25s ease-out forwards;
+}
+
+@keyframes slideOutLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-60px); opacity: 0; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(60px); opacity: 0; }
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* ==================== Utility ==================== */
+
+.hidden {
+    display: none !important;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-primary);
+    border-top-color: var(--accent-cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.stale-warning {
+    color: var(--warning) !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Wind arrow */
+.wind-direction-arrow {
+    transition: transform 0.5s ease-out, opacity 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 212, 255, 0.6));
+}
+
+.crosswind-fill {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.3s ease;
+}
