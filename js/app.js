@@ -1,43 +1,63 @@
 /**
- * Aviation Weather Dashboard - Main Application
- * KUGN Weather Display for Raspberry Pi
+ * Aviation Weather Dashboard — Main Application
+ * Multi-screen UI optimized for Raspberry Pi 800×480 touchscreen
  */
 
 const App = {
-    // Application state
+
+    // ── State ──────────────────────────────────────────────
     state: {
         metar: null,
         taf: null,
         aircraftStatus: {},
         lastUpdate: null,
-        isLoading: true,
-        hasError: false,
-        currentMap: 'radar'
+        currentScreen: 'metar',
+        currentRadar: 'radar',
+        aircraftMapInit: false
     },
 
-    // KUGN Airport Info
+    // Runtime airport info (populated from ConfigManager)
     airport: {
         icao: 'KUGN',
         name: 'Waukegan National Airport',
-        elevation: 727, // feet MSL
+        elevation: 727,
         coordinates: { lat: 42.4222, lon: -87.8679 }
     },
 
-    /**
-     * Initialize the application
-     */
+    // Leaflet map instance + markers for aircraft screen
+    aircraftMap: null,
+    aircraftMarkers: {},
+
+    // ── Initialization ─────────────────────────────────────
     async init() {
-        Utils.log('Initializing Aviation Weather Dashboard', 'info');
+        Utils.log('Initializing dashboard (800×480)', 'info');
+
+        // Load persisted config and apply to API
+        const cfg = ConfigManager.get();
+        this.applyConfig(cfg);
+
+        // Build dynamic aircraft rows from config
+        this.buildAircraftRows(cfg.tailNumbers);
+
+        // Update header with ICAO from config
+        this.updateHeaderIcao(cfg.icao);
+
+        // Wire up navigation
+        this.setupNav();
+        this.setupRadarTabs();
+        this.setupConfigForm();
 
         // Start clock
         this.startClock();
 
-        // Initialize components
-        await AirportDiagram.init();
-        TafTimeline.init();
+        // Initialize weather visualization modules (SVG diagram + chart)
+        try {
+            await AirportDiagram.init();
+        } catch (e) {
+            Utils.log('AirportDiagram.init failed (non-fatal): ' + e.message, 'warn');
+        }
 
-        // Set up map tab switching
-        this.setupMapTabs();
+        TafTimeline.init();
 
         // Fetch initial data
         await this.loadWeatherData();
@@ -52,588 +72,647 @@ const App = {
             onError: (type, error) => this.handleError(type, error)
         });
 
-        Utils.log('Dashboard initialized successfully', 'info');
+        Utils.log('Dashboard ready', 'info');
     },
 
-    /**
-     * Start the clock display
-     */
+    // ── Config ─────────────────────────────────────────────
+
+    applyConfig(cfg) {
+        // Apply to airport info
+        if (cfg.icao) this.airport.icao = cfg.icao.toUpperCase();
+        if (cfg.airportName) this.airport.name = cfg.airportName;
+        if (cfg.elevation) this.airport.elevation = cfg.elevation;
+        if (cfg.coordinates) this.airport.coordinates = cfg.coordinates;
+
+        // Apply to WeatherAPI
+        WeatherAPI.configure(cfg);
+    },
+
+    updateHeaderIcao(icao) {
+        const el = document.getElementById('headerIcao');
+        if (el && icao) el.textContent = icao.toUpperCase();
+
+        // Also update SVG text inside diagram
+        const svgEl = document.getElementById('svgIcao');
+        if (svgEl && icao) svgEl.textContent = icao.toUpperCase();
+    },
+
+    // ── Aircraft Rows ──────────────────────────────────────
+
+    buildAircraftRows(tailNumbers) {
+        const list = document.getElementById('aircraft-list');
+        if (!list || !tailNumbers || tailNumbers.length === 0) return;
+
+        list.innerHTML = tailNumbers.map(tail => `
+            <div class="aircraft-row" id="aircraft-${tail}" data-tail-number="${tail}">
+                <span class="ac-tail">${tail}</span>
+                <span class="ac-status value">--</span>
+            </div>
+        `).join('');
+
+        // Wire up tap-to-center-map
+        list.querySelectorAll('.aircraft-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const tail = row.dataset.tailNumber;
+                this.centerMapOnAircraft(tail);
+            });
+        });
+    },
+
+    getTailNumbers() {
+        const rows = document.querySelectorAll('.aircraft-row');
+        return Array.from(rows)
+            .map(r => r.dataset.tailNumber?.toUpperCase())
+            .filter(Boolean);
+    },
+
+    // ── Navigation ─────────────────────────────────────────
+
+    setupNav() {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.showScreen(btn.dataset.screen);
+            });
+        });
+    },
+
+    showScreen(name) {
+        if (!name) return;
+
+        // Update screens
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById('screen-' + name);
+        if (target) target.classList.add('active');
+
+        // Update nav buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.screen === name);
+        });
+
+        this.state.currentScreen = name;
+
+        // Lazy-init aircraft map on first visit
+        if (name === 'aircraft' && !this.state.aircraftMapInit) {
+            this.state.aircraftMapInit = true;
+            setTimeout(() => this.initAircraftMap(), 50);
+        }
+
+        // Populate config form when config screen shown
+        if (name === 'config') {
+            this.populateConfigForm();
+        }
+    },
+
+    // ── Radar Tab Switching ────────────────────────────────
+
+    setupRadarTabs() {
+        document.querySelectorAll('.radar-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const type = tab.dataset.radar;
+
+                document.querySelectorAll('.radar-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                document.querySelectorAll('.radar-frame').forEach(f => f.classList.remove('active'));
+                const frame = document.getElementById(type + 'Frame');
+                if (frame) frame.classList.add('active');
+
+                this.state.currentRadar = type;
+            });
+        });
+    },
+
+    // ── Clock ──────────────────────────────────────────────
+
     startClock() {
-        const updateClock = () => {
+        const tick = () => {
             const now = new Date();
-
             const zuluEl = document.getElementById('clockZulu');
-            const localEl = document.getElementById('clockLocal');
-
-            if (zuluEl) {
-                zuluEl.textContent = Utils.formatZulu(now);
-            }
-
-            if (localEl) {
-                localEl.textContent = Utils.formatLocal(now);
-            }
+            if (zuluEl) zuluEl.textContent = Utils.formatZulu(now);
         };
-
-        updateClock();
-        setInterval(updateClock, 1000);
+        tick();
+        setInterval(tick, 1000);
     },
 
-    /**
-     * Load weather data
-     */
-    async loadWeatherData() {
-        this.setLoading(true);
+    // ── Data Loading ───────────────────────────────────────
 
+    async loadWeatherData() {
         try {
             const { metar, taf } = await WeatherAPI.fetchAll();
-
             this.updateMetar(metar);
             this.updateTaf(taf);
-
             this.state.lastUpdate = new Date();
-            this.state.hasError = false;
-
         } catch (error) {
-            Utils.log(`Failed to load weather data: ${error.message}`, 'error');
+            Utils.log('Failed to load weather data: ' + error.message, 'error');
             this.handleError('all', error);
-        } finally {
-            this.setLoading(false);
         }
     },
 
-    /**
-     * Load aircraft status data
-     */
     async loadAircraftStatus() {
-        const tailNumbers = this.getTailNumbers();
-        if (tailNumbers.length === 0) {
-            return;
-        }
-
+        const tails = this.getTailNumbers();
+        if (tails.length === 0) return;
         try {
-            const statusMap = await WeatherAPI.getAircraftStatus(tailNumbers);
+            const statusMap = await WeatherAPI.getAircraftStatus(tails);
             this.updateAircraftStatus(statusMap);
         } catch (error) {
-            Utils.log(`Failed to load aircraft status: ${error.message}`, 'error');
+            Utils.log('Failed to load aircraft status: ' + error.message, 'error');
             this.handleError('aircraft', error);
         }
     },
 
-    /**
-     * Get configured tail numbers from the UI
-     */
-    getTailNumbers() {
-        const rows = document.querySelectorAll('.aircraft-row');
-        const tailNumbers = Array.from(rows)
-            .map(row => row.dataset.tailNumber?.toUpperCase())
-            .filter(Boolean);
+    // ── METAR Updates ──────────────────────────────────────
 
-        return [...new Set(tailNumbers)];
-    },
-
-    /**
-     * Update METAR display
-     */
     updateMetar(data) {
         if (!data) return;
 
-        // Parse METAR
         const metar = MetarParser.parseFromJson(data);
         if (!metar) return;
 
         this.state.metar = metar;
 
-        // Update flight category
         this.updateFlightCategory(metar.flightCategory);
-
-        // Update current conditions
         this.updateConditions(metar);
 
-        // Update airport diagram and crosswind
         const windDir = metar.wind.direction;
         const windSpeed = metar.wind.speed || 0;
-        const gustSpeed = metar.wind.gust;
+        const gust = metar.wind.gust;
 
-        AirportDiagram.updateWind(windDir, windSpeed, gustSpeed);
-        AirportDiagram.updateCrosswind(windDir, windSpeed, gustSpeed);
-
-        // Update raw METAR display
-        const rawMetarEl = document.getElementById('rawMetar');
-        if (rawMetarEl) {
-            rawMetarEl.textContent = metar.raw;
+        // Update SVG wind arrow
+        try {
+            AirportDiagram.updateWind(windDir, windSpeed, gust);
+            AirportDiagram.updateCrosswind(windDir, windSpeed, gust);
+        } catch (e) {
+            Utils.log('AirportDiagram update failed: ' + e.message, 'warn');
         }
 
-        // Update METAR age
+        const rawEl = document.getElementById('rawMetar');
+        if (rawEl) rawEl.textContent = metar.raw;
+
         this.updateMetarAge(metar.observationTime);
 
-        // Update last update time
-        const updateTimeEl = document.getElementById('updateTime');
-        if (updateTimeEl && metar.time) {
-            updateTimeEl.textContent = `${metar.time.substring(2, 4)}:${metar.time.substring(4, 6)}Z`;
+        const updateEl = document.getElementById('updateTime');
+        if (updateEl && metar.time) {
+            updateEl.textContent = `${metar.time.substring(2, 4)}:${metar.time.substring(4, 6)}Z`;
         }
 
-        Utils.log('METAR display updated', 'info');
+        Utils.log('METAR updated', 'info');
     },
 
-    /**
-     * Update flight category display
-     */
     updateFlightCategory(category) {
-        const categoryEl = document.getElementById('flightCategory');
-        const labelEl = categoryEl?.querySelector('.category-label');
+        const el = document.getElementById('flightCategory');
+        const labelEl = el?.querySelector('.category-label');
+        if (!el || !labelEl) return;
 
-        if (!categoryEl || !labelEl) return;
-
-        // Update text
         labelEl.textContent = category;
-
-        // Update styling
-        categoryEl.className = 'flight-category';
-        categoryEl.classList.add(`category-${category.toLowerCase()}`);
-
-        // Add glow effect
+        el.className = 'flight-category';
+        el.classList.add('category-' + category.toLowerCase());
         labelEl.className = 'category-label';
-        labelEl.classList.add(`glow-${category.toLowerCase()}`);
+        labelEl.classList.add('glow-' + category.toLowerCase());
     },
 
-    /**
-     * Update conditions panel
-     */
     updateConditions(metar) {
         // Ceiling
-        const ceilingEl = document.getElementById('ceiling');
-        if (ceilingEl) {
-            if (metar.ceiling >= 99999) {
-                ceilingEl.textContent = 'CLR';
-            } else {
-                ceilingEl.textContent = metar.ceiling.toLocaleString();
-            }
+        const ceilEl = document.getElementById('ceiling');
+        if (ceilEl) {
+            ceilEl.textContent = metar.ceiling >= 99999 ? 'CLR' : metar.ceiling.toLocaleString();
         }
 
         // Visibility
         const visEl = document.getElementById('visibility');
         if (visEl) {
-            const vis = metar.visibility || 10;
-            visEl.textContent = vis >= 10 ? '10+' : vis;
+            const v = metar.visibility || 10;
+            visEl.textContent = v >= 10 ? '10+' : String(v);
         }
 
         // Wind
         const windEl = document.getElementById('wind');
-        if (windEl) {
-            windEl.textContent = MetarParser.formatWind(metar.wind);
-        }
+        if (windEl) windEl.textContent = MetarParser.formatWind(metar.wind);
 
         // Gusts
-        const gustsEl = document.getElementById('gusts');
-        const gustsContainer = document.getElementById('gustsContainer');
-        if (gustsEl && gustsContainer) {
+        const gustEl = document.getElementById('gusts');
+        const gustContainer = document.getElementById('gustsContainer');
+        if (gustEl && gustContainer) {
             if (metar.wind.gust) {
-                gustsEl.textContent = metar.wind.gust;
-                gustsContainer.style.display = 'flex';
+                gustEl.textContent = metar.wind.gust;
+                gustContainer.style.opacity = '1';
             } else {
-                gustsContainer.style.display = 'none';
+                gustEl.textContent = '--';
+                gustContainer.style.opacity = '0.4';
             }
         }
 
         // Altimeter
         const altEl = document.getElementById('altimeter');
-        if (altEl && metar.altimeter) {
-            altEl.textContent = metar.altimeter.toFixed(2);
-        }
+        if (altEl && metar.altimeter) altEl.textContent = metar.altimeter.toFixed(2);
 
-        // Temperature
+        // Temp / Dew
         const tempEl = document.getElementById('temperature');
-        if (tempEl && metar.temperature !== null) {
-            tempEl.textContent = metar.temperature;
-        }
-
-        // Dewpoint
         const dewEl = document.getElementById('dewpoint');
-        if (dewEl && metar.dewpoint !== null) {
-            dewEl.textContent = metar.dewpoint;
-        }
+        if (tempEl && metar.temperature !== null) tempEl.textContent = metar.temperature;
+        if (dewEl && metar.dewpoint !== null) dewEl.textContent = metar.dewpoint;
 
-        // Density Altitude
-        const densityEl = document.getElementById('densityAlt');
-        if (densityEl && metar.altimeter && metar.temperature !== null) {
-            const densityAlt = Utils.calculateDensityAltitude(
+        // Density altitude
+        const densEl = document.getElementById('densityAlt');
+        if (densEl && metar.altimeter && metar.temperature !== null) {
+            const da = Utils.calculateDensityAltitude(
                 this.airport.elevation,
                 metar.altimeter,
                 metar.temperature
             );
-            densityEl.textContent = densityAlt.toLocaleString();
+            densEl.textContent = da.toLocaleString();
         }
 
-        // Weather
-        const weatherEl = document.getElementById('weather');
-        if (weatherEl) {
-            weatherEl.textContent = MetarParser.getWeatherDescription(metar);
-        }
+        // Weather phenomena
+        const wxEl = document.getElementById('weather');
+        if (wxEl) wxEl.textContent = MetarParser.getWeatherDescription(metar) || 'CLR';
 
-        // VFR Check
+        // VFR check
         this.updateVfrCheck(metar);
     },
 
-    /**
-     * Update VFR minimums check
-     */
     updateVfrCheck(metar) {
-        const vfrCheckEl = document.getElementById('vfrCheck');
-        if (!vfrCheckEl) return;
+        const el = document.getElementById('vfrCheck');
+        if (!el) return;
 
         const ceiling = metar.ceiling;
-        const visibility = metar.visibility || 10;
+        const vis = metar.visibility || 10;
+        const okCeil = ceiling >= 1000;
+        const okVis  = vis >= 3;
+        const ok = okCeil && okVis;
 
-        // Class D minimums: 1000 ft ceiling, 3 SM visibility
-        const meetsCeiling = ceiling >= 1000;
-        const meetsVisibility = visibility >= 3;
-        const meetsVfr = meetsCeiling && meetsVisibility;
+        const icon = el.querySelector('.vfr-icon');
+        const text = el.querySelector('.vfr-text');
 
-        const iconEl = vfrCheckEl.querySelector('.vfr-icon');
-        const textEl = vfrCheckEl.querySelector('.vfr-text');
+        el.classList.toggle('not-met', !ok);
 
-        if (meetsVfr) {
-            vfrCheckEl.classList.remove('not-met');
-            if (iconEl) iconEl.textContent = '✓';
-            if (textEl) textEl.textContent = 'VFR Minimums Met';
+        if (ok) {
+            if (icon) icon.textContent = '✓';
+            if (text) text.textContent = 'VFR Minimums Met';
         } else {
-            vfrCheckEl.classList.add('not-met');
-            if (iconEl) iconEl.textContent = '✗';
-
+            if (icon) icon.textContent = '✗';
             const issues = [];
-            if (!meetsCeiling) issues.push(`Ceiling ${ceiling} ft`);
-            if (!meetsVisibility) issues.push(`Visibility ${visibility} SM`);
-            if (textEl) textEl.textContent = `VFR Minimums NOT Met: ${issues.join(', ')}`;
+            if (!okCeil) issues.push(`Ceiling ${ceiling} ft`);
+            if (!okVis)  issues.push(`Vis ${vis} SM`);
+            if (text) text.textContent = 'NOT Met: ' + issues.join(', ');
         }
     },
 
-    /**
-     * Update METAR age display
-     */
     updateMetarAge(observationTime) {
-        const ageEl = document.getElementById('metarAge');
-        if (!ageEl || !observationTime) return;
+        const el = document.getElementById('metarAge');
+        if (!el || !observationTime) return;
 
-        const updateAge = () => {
-            const minutes = Utils.minutesSince(observationTime);
-            ageEl.textContent = `${minutes} min ago`;
-
-            // Warn if data is old
-            if (minutes > 60) {
-                ageEl.classList.add('stale-warning');
-            } else {
-                ageEl.classList.remove('stale-warning');
-            }
+        const refresh = () => {
+            const mins = Utils.minutesSince(observationTime);
+            el.textContent = `${mins} min ago`;
+            el.classList.toggle('stale-warning', mins > 60);
         };
 
-        updateAge();
-        // Update every minute
-        setInterval(updateAge, 60000);
+        refresh();
+        setInterval(refresh, 60000);
     },
 
-    /**
-     * Update TAF display
-     */
+    // ── TAF Updates ────────────────────────────────────────
+
     updateTaf(data) {
-        if (!data) {
-            Utils.log('No TAF data provided to updateTaf', 'warn');
-            return;
-        }
+        if (!data) return;
 
-        Utils.log(`Updating TAF display with data from ${data.icaoId || 'unknown'}`, 'info');
-
-        // Parse TAF
         const taf = data.rawTAF ? TafParser.parse(data.rawTAF) : null;
-        if (!taf) {
-            Utils.log('Failed to parse TAF data', 'error');
-            console.error('TAF parsing failed for data:', data);
-            return;
-        }
+        if (!taf) return;
 
         this.state.taf = taf;
 
-        // Update TAF validity with airport info
-        const validityEl = document.getElementById('tafValidity');
-        if (validityEl && taf.validFrom && taf.validTo) {
-            let validityText = `Valid: ${taf.validFrom}Z to ${taf.validTo}Z`;
-
-            // Show nearby airport info if using fallback TAF
+        // Validity line
+        const validEl = document.getElementById('tafValidity');
+        if (validEl && taf.validFrom && taf.validTo) {
+            let txt = `Valid: ${taf.validFrom}Z to ${taf.validTo}Z`;
             if (data.icaoId && data.icaoId !== this.airport.icao && data.distance) {
-                validityText = `${data.icaoId} TAF (${data.distance.toFixed(1)} nm) - ${validityText}`;
-                validityEl.style.color = '#FFD700'; // Gold color to indicate nearby TAF
+                txt = `${data.icaoId} (${data.distance.toFixed(1)} nm) — ${txt}`;
+                validEl.style.color = '#FFD700';
             } else {
-                validityEl.style.color = ''; // Reset to default
+                validEl.style.color = '';
             }
-
-            validityEl.textContent = validityText;
+            validEl.textContent = txt;
         }
 
-        // Update timeline
+        // Chart
         TafTimeline.update(taf);
 
-        // Update raw TAF
-        const rawTafEl = document.getElementById('rawTaf');
-        if (rawTafEl) {
-            rawTafEl.textContent = taf.raw;
-        }
+        // Raw TAF
+        const rawEl = document.getElementById('rawTaf');
+        if (rawEl) rawEl.textContent = taf.raw;
 
-        Utils.log('TAF display updated', 'info');
+        Utils.log('TAF updated', 'info');
     },
 
-    /**
-     * Update aircraft status display
-     */
+    // ── Aircraft Status Updates ────────────────────────────
+
     updateAircraftStatus(data, options = {}) {
-        const rows = document.querySelectorAll('.aircraft-row');
-        const emptyStateEl = document.getElementById('aircraftEmptyState');
+        const statusMap = (data && typeof data === 'object') ? data : {};
 
-        if (!rows || rows.length === 0) return;
-
-        const statusMap = data && typeof data === 'object' ? data : {};
+        // Update list rows
         let hasData = false;
+        document.querySelectorAll('.aircraft-row').forEach(row => {
+            const tail = row.dataset.tailNumber?.toUpperCase();
+            const statusEl = row.querySelector('.ac-status');
+            if (!tail || !statusEl) return;
 
-        rows.forEach(row => {
-            const tailNumber = row.dataset.tailNumber?.toUpperCase();
-            const valueEl = row.querySelector('.value');
-            if (!valueEl || !tailNumber) return;
+            const status = statusMap[tail] || this.state.aircraftStatus?.[tail];
 
-            const statusData = statusMap[tailNumber];
-            const cachedStatus = this.state.aircraftStatus?.[tailNumber];
-            const effectiveStatus = statusData || cachedStatus;
-
-            if (effectiveStatus) {
-                const formatted = this.formatAircraftStatus({
-                    ...effectiveStatus,
-                    isStale: !statusData && !!cachedStatus
-                });
-                valueEl.textContent = formatted;
-                row.classList.remove('status-onground', 'status-inflight', 'status-unknown');
-                row.classList.add(this.getAircraftStatusClass(effectiveStatus));
+            if (status) {
+                const isStale = !statusMap[tail] && !!this.state.aircraftStatus?.[tail];
+                statusEl.textContent = this.formatAircraftStatus({ ...status, isStale });
+                row.className = 'aircraft-row ' + this.getAircraftStatusClass(status);
                 hasData = true;
-            } else if (options.unavailable) {
-                valueEl.textContent = 'Unavailable';
-                row.classList.remove('status-onground', 'status-inflight');
-                row.classList.add('status-unknown');
             } else {
-                valueEl.textContent = '--';
-                row.classList.remove('status-onground', 'status-inflight');
-                row.classList.add('status-unknown');
+                statusEl.textContent = options.unavailable ? 'Unavailable' : '--';
+                row.className = 'aircraft-row status-unknown';
             }
         });
 
-        if (emptyStateEl) {
-            if (hasData) {
-                emptyStateEl.classList.add('hidden');
-            } else {
-                emptyStateEl.classList.remove('hidden');
-                emptyStateEl.textContent = options.unavailable ? 'Unavailable' : 'No data yet.';
-            }
+        const emptyEl = document.getElementById('aircraftEmptyState');
+        if (emptyEl) {
+            emptyEl.style.display = hasData ? 'none' : 'block';
         }
 
+        // Cache status map
         if (Object.keys(statusMap).length > 0) {
             this.state.aircraftStatus = statusMap;
         }
+
+        // Update map markers if map is initialized
+        if (this.aircraftMap) {
+            this.updateAircraftMapMarkers(statusMap);
+        }
     },
 
-    /**
-     * Format aircraft status details
-     */
-    formatAircraftStatus(statusData) {
-        if (!statusData) {
-            return '--';
-        }
+    formatAircraftStatus(s) {
+        if (!s) return '--';
 
         const parts = [];
+        const lastSeen = s.lastSeenTime ?? s.timePosition ?? s.lastContact ?? s.lastSeenTimestamp;
+        const ageMs = lastSeen ? (Date.now() - lastSeen * 1000) : null;
+        const stale = ageMs && ageMs > 15 * 60 * 1000;
 
-        // Determine if data is stale (older than 15 minutes)
-        // Use timePosition (when position was updated) if available, otherwise fall back to lastContact
-        const lastSeenTime = statusData.lastSeenTime ?? statusData.timePosition ?? statusData.lastContact ?? statusData.lastSeenTimestamp;
-        const now = Date.now();
-        const dataAgeMs = lastSeenTime ? now - (lastSeenTime * 1000) : null;
-        const isStale = dataAgeMs && dataAgeMs > 15 * 60 * 1000; // 15 minutes
-
-        // Determine ground status with better heuristics
-        let onGround = statusData.onGround;
-
-        // If we have altitude and velocity data, use it to refine ground status
-        if (typeof statusData.baroAltitude === 'number' && typeof statusData.velocity === 'number') {
-            // If altitude is very low (< 100 feet) and velocity is very low (< 5 m/s ≈ 10 knots), likely on ground
-            if (statusData.baroAltitude < 100 && statusData.velocity < 5) {
-                onGround = true;
-            }
+        let onGround = s.onGround;
+        if (typeof s.baroAltitude === 'number' && typeof s.velocity === 'number') {
+            if (s.baroAltitude < 100 && s.velocity < 5) onGround = true;
         }
 
-        // Format status label
-        let statusLabel;
-        if (statusData.status === 'No Signal') {
-            statusLabel = 'No Signal';
+        if (s.status === 'No Signal') {
+            parts.push('No Signal');
         } else if (typeof onGround === 'boolean') {
-            if (isStale) {
-                statusLabel = onGround ? 'Last Known: On Ground' : 'Last Known: In Flight';
-            } else {
-                statusLabel = onGround ? 'On Ground' : 'In Flight';
-            }
-        } else {
-            statusLabel = statusData.status;
+            parts.push(stale
+                ? (onGround ? 'Last: Ground' : 'Last: In Flight')
+                : (onGround ? 'On Ground' : 'In Flight'));
+        } else if (s.status) {
+            parts.push(s.status);
         }
 
-        if (statusLabel) {
-            parts.push(statusLabel);
+        if (typeof lastSeen === 'number' && lastSeen > 0) {
+            parts.push(Utils.formatZuluMinutes(new Date(lastSeen * 1000)));
         }
 
-        // Add last seen time
-        const seenLabel = isStale ? 'Last seen' : 'Seen';
-        if (typeof lastSeenTime === 'number' && lastSeenTime > 0) {
-            parts.push(`${seenLabel} ${Utils.formatZuluMinutes(new Date(lastSeenTime * 1000))}`);
-        } else if (statusData.lastSeen) {
-            parts.push(`${seenLabel} ${statusData.lastSeen}`);
+        const alt = s.baroAltitude ?? s.geoAltitude;
+        if (typeof alt === 'number') parts.push(Math.round(alt) + ' ft');
+
+        if (typeof s.trueTrack === 'number' && !onGround) {
+            parts.push('HDG ' + Math.round(s.trueTrack) + '°');
         }
 
-        // Add altitude if available
-        const altitude = statusData.baroAltitude ?? statusData.geoAltitude;
-        if (typeof altitude === 'number') {
-            parts.push(`${Math.round(altitude)} ft`);
+        if (typeof s.velocity === 'number' && !onGround) {
+            parts.push(Math.round(s.velocity * 1.94384) + ' kts');
         }
 
-        // Add heading/track if available and aircraft is moving
-        if (typeof statusData.trueTrack === 'number' && !onGround) {
-            parts.push(`HDG ${Math.round(statusData.trueTrack)}°`);
-        }
-
-        // Add speed if available and aircraft is moving
-        if (typeof statusData.velocity === 'number' && !onGround) {
-            const speedKnots = Math.round(statusData.velocity * 1.94384); // m/s to knots
-            parts.push(`${speedKnots} kts`);
-        }
-
-        // Add location coordinates
-        const lat = statusData.latitude ?? statusData.lat;
-        const lon = statusData.longitude ?? statusData.lon;
-        if (typeof lat === 'number' && typeof lon === 'number') {
-            let locationStr = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
-
-            // Add position source indicator for data quality
-            if (typeof statusData.positionSource === 'number') {
-                const sources = ['ADS-B', 'ASTERIX', 'MLAT', 'FLARM'];
-                const source = sources[statusData.positionSource] || 'Unknown';
-                locationStr += ` (${source})`;
-            }
-
-            parts.push(locationStr);
-        }
-
-        return parts.length > 0 ? parts.join(' • ') : 'Unavailable';
+        return parts.join(' · ') || 'Unavailable';
     },
 
-    /**
-     * Get CSS class for aircraft status
-     */
-    getAircraftStatusClass(statusData) {
-        if (!statusData) {
-            return 'status-unknown';
+    getAircraftStatusClass(s) {
+        if (!s) return 'status-unknown';
+
+        let onGround = s.onGround;
+        if (typeof s.baroAltitude === 'number' && typeof s.velocity === 'number') {
+            if (s.baroAltitude < 100 && s.velocity < 5) onGround = true;
         }
 
-        // Use same logic as formatAircraftStatus for consistency
-        let onGround = statusData.onGround;
+        if (typeof onGround === 'boolean') return onGround ? 'status-onground' : 'status-inflight';
 
-        // Refine ground status using altitude and velocity
-        if (typeof statusData.baroAltitude === 'number' && typeof statusData.velocity === 'number') {
-            if (statusData.baroAltitude < 100 && statusData.velocity < 5) {
-                onGround = true;
-            }
-        }
-
-        if (typeof onGround === 'boolean') {
-            return onGround ? 'status-onground' : 'status-inflight';
-        }
-
-        if (statusData.status) {
-            const normalized = statusData.status.toLowerCase();
-            if (normalized.includes('ground')) {
-                return 'status-onground';
-            }
-            if (normalized.includes('flight') || normalized.includes('air')) {
-                return 'status-inflight';
-            }
-            if (normalized.includes('no signal')) {
-                return 'status-unknown';
-            }
+        if (s.status) {
+            const n = s.status.toLowerCase();
+            if (n.includes('ground'))            return 'status-onground';
+            if (n.includes('flight') || n.includes('air')) return 'status-inflight';
         }
 
         return 'status-unknown';
     },
 
-    /**
-     * Set up map tab switching
-     */
-    setupMapTabs() {
-        const tabs = document.querySelectorAll('.map-tab');
-        const maps = {
-            'radar': document.getElementById('radarMap'),
-            'satellite': document.getElementById('satelliteMap'),
-            'surface': document.getElementById('surfaceMap')
-        };
+    // ── Aircraft Map (Leaflet) ─────────────────────────────
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const mapType = tab.dataset.map;
+    initAircraftMap() {
+        const mapEl = document.getElementById('aircraft-map');
+        if (!mapEl || this.aircraftMap) return;
 
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
+        const cfg = ConfigManager.get();
+        const center = [cfg.coordinates.lat, cfg.coordinates.lon];
 
-                // Show selected map
-                Object.entries(maps).forEach(([type, el]) => {
-                    if (el) {
-                        if (type === mapType) {
-                            el.classList.remove('hidden');
-                        } else {
-                            el.classList.add('hidden');
-                        }
-                    }
-                });
+        this.aircraftMap = L.map('aircraft-map', {
+            center,
+            zoom: 9,
+            zoomControl: false,
+            attributionControl: false
+        });
 
-                this.state.currentMap = mapType;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 15,
+            opacity: 0.7
+        }).addTo(this.aircraftMap);
+
+        // Add home airport marker
+        L.circleMarker(center, {
+            radius: 6,
+            color: '#00D4FF',
+            fillColor: '#00D4FF',
+            fillOpacity: 0.4,
+            weight: 2
+        }).bindPopup(cfg.icao).addTo(this.aircraftMap);
+
+        // If we have cached aircraft data, place markers immediately
+        if (Object.keys(this.state.aircraftStatus).length > 0) {
+            this.updateAircraftMapMarkers(this.state.aircraftStatus);
+        }
+
+        // Force redraw (needed when container was hidden)
+        setTimeout(() => this.aircraftMap.invalidateSize(), 100);
+    },
+
+    updateAircraftMapMarkers(statusMap) {
+        if (!this.aircraftMap) return;
+
+        Object.entries(statusMap).forEach(([tail, s]) => {
+            if (!s) return;
+
+            const lat = s.latitude ?? s.lat;
+            const lon = s.longitude ?? s.lon;
+            if (typeof lat !== 'number' || typeof lon !== 'number') return;
+
+            const cls = this.getAircraftStatusClass(s);
+            const markerClass = cls === 'status-onground' ? 'onground'
+                              : cls === 'status-inflight' ? 'inflight'
+                              : 'unknown';
+
+            const icon = L.divIcon({
+                html: `<div class="ac-map-marker ${markerClass}">${tail}</div>`,
+                className: '',
+                iconSize: [52, 22],
+                iconAnchor: [26, 11]
             });
+
+            if (this.aircraftMarkers[tail]) {
+                this.aircraftMarkers[tail].setLatLng([lat, lon]);
+                this.aircraftMarkers[tail].setIcon(icon);
+            } else {
+                this.aircraftMarkers[tail] = L.marker([lat, lon], { icon })
+                    .addTo(this.aircraftMap)
+                    .bindPopup(this.formatAircraftStatus(s));
+            }
         });
     },
 
-    /**
-     * Set loading state
-     */
-    setLoading(isLoading) {
-        this.state.isLoading = isLoading;
-        // Could add loading spinners here
+    centerMapOnAircraft(tail) {
+        if (!this.aircraftMap) return;
+
+        const status = this.state.aircraftStatus?.[tail];
+        if (!status) return;
+
+        const lat = status.latitude ?? status.lat;
+        const lon = status.longitude ?? status.lon;
+        if (typeof lat === 'number' && typeof lon === 'number') {
+            this.aircraftMap.flyTo([lat, lon], 11, { duration: 0.8 });
+        }
     },
 
-    /**
-     * Handle errors
-     */
+    // ── Config Screen ──────────────────────────────────────
+
+    setupConfigForm() {
+        document.getElementById('configSaveBtn')?.addEventListener('click', () => {
+            this.saveConfig();
+        });
+
+        document.getElementById('configResetBtn')?.addEventListener('click', () => {
+            if (confirm('Reset all settings to defaults?')) {
+                ConfigManager.reset();
+                location.reload();
+            }
+        });
+    },
+
+    populateConfigForm() {
+        const cfg = ConfigManager.get();
+
+        const icaoEl = document.getElementById('cfg-icao');
+        if (icaoEl) icaoEl.value = cfg.icao || '';
+
+        const tailsEl = document.getElementById('cfg-tails');
+        if (tailsEl) tailsEl.value = (cfg.tailNumbers || []).join('\n');
+
+        const workerEl = document.getElementById('cfg-worker');
+        if (workerEl) workerEl.value = cfg.workerUrl || '';
+
+        const acUrlEl = document.getElementById('cfg-aircraft-url');
+        if (acUrlEl) acUrlEl.value = cfg.aircraftStatusEndpoint || '';
+
+        this.setSelectValue('cfg-metar-interval', cfg.metarRefreshInterval);
+        this.setSelectValue('cfg-taf-interval', cfg.tafRefreshInterval);
+        this.setSelectValue('cfg-aircraft-interval', cfg.aircraftRefreshInterval);
+    },
+
+    setSelectValue(id, val) {
+        const el = document.getElementById(id);
+        if (!el || val === undefined) return;
+        const str = String(val);
+        for (const opt of el.options) {
+            if (opt.value === str) { opt.selected = true; return; }
+        }
+    },
+
+    saveConfig() {
+        const icao = document.getElementById('cfg-icao')?.value.trim().toUpperCase();
+        const tailsRaw = document.getElementById('cfg-tails')?.value || '';
+        const tailNumbers = tailsRaw.split('\n')
+            .map(t => t.trim().toUpperCase())
+            .filter(t => t.length > 0);
+
+        const workerUrl = document.getElementById('cfg-worker')?.value.trim();
+        const aircraftStatusEndpoint = document.getElementById('cfg-aircraft-url')?.value.trim();
+
+        const metarRefreshInterval = parseInt(document.getElementById('cfg-metar-interval')?.value || '10');
+        const tafRefreshInterval   = parseInt(document.getElementById('cfg-taf-interval')?.value  || '30');
+        const aircraftRefreshInterval = parseInt(document.getElementById('cfg-aircraft-interval')?.value || '2');
+
+        const newCfg = {
+            icao:                   icao                   || ConfigManager.defaults.icao,
+            tailNumbers:            tailNumbers.length > 0  ? tailNumbers : ConfigManager.defaults.tailNumbers,
+            workerUrl:              workerUrl              || ConfigManager.defaults.workerUrl,
+            aircraftStatusEndpoint: aircraftStatusEndpoint || ConfigManager.defaults.aircraftStatusEndpoint,
+            metarRefreshInterval,
+            tafRefreshInterval,
+            aircraftRefreshInterval
+        };
+
+        ConfigManager.save(newCfg);
+        location.reload();
+    },
+
+    // ── Image Refresh ──────────────────────────────────────
+
+    refreshImages() {
+        const ts = Date.now();
+
+        const radarImg = document.getElementById('radarImg');
+        if (radarImg) radarImg.src = WeatherAPI.getRadarUrl();
+
+        const satImg = document.getElementById('satelliteImg');
+        if (satImg) satImg.src = WeatherAPI.getSatelliteUrl();
+
+        const surfImg = document.getElementById('surfaceImg');
+        if (surfImg) surfImg.src = WeatherAPI.getSurfaceUrl();
+
+        const ind = document.getElementById('radarRefreshIndicator');
+        if (ind) {
+            const now = new Date();
+            ind.textContent = `Updated ${now.getUTCHours().toString().padStart(2,'0')}:${now.getUTCMinutes().toString().padStart(2,'0')}Z`;
+        }
+    },
+
+    // ── Error Handling ─────────────────────────────────────
+
     handleError(type, error) {
         Utils.log(`Error (${type}): ${error.message}`, 'error');
-        this.state.hasError = true;
-
-        // Show error state in UI
-        // For now, just log it. Could show toast notification.
         if (type === 'aircraft') {
             this.updateAircraftStatus(this.state.aircraftStatus, { unavailable: true });
         }
     },
 
-    /**
-     * Refresh all data
-     */
     async refresh() {
         await this.loadWeatherData();
         await this.loadAircraftStatus();
-        WeatherAPI.refreshImages();
+        this.refreshImages();
     }
 };
 
-// Initialize when DOM is ready
+// ── Startup ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    App.init().catch(error => {
-        console.error('Failed to initialize dashboard:', error);
+    // Load radar images immediately
+    const cfg = ConfigManager.get();
+    const ts = Date.now();
+    const radarImg = document.getElementById('radarImg');
+    if (radarImg) radarImg.src = `https://radar.weather.gov/ridge/standard/KLOT_loop.gif?t=${ts}`;
+    const satImg = document.getElementById('satelliteImg');
+    if (satImg) satImg.src = `https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/umv/GEOCOLOR/600x600.jpg?t=${ts}`;
+    const surfImg = document.getElementById('surfaceImg');
+    if (surfImg) surfImg.src = `https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif?t=${ts}`;
+
+    App.init().catch(err => {
+        console.error('Dashboard init failed:', err);
     });
 });
 
