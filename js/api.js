@@ -470,6 +470,19 @@ const WeatherAPI = {
     },
 
     /**
+     * Apply runtime configuration from ConfigManager
+     */
+    configure(config) {
+        if (config.workerUrl) this.workerUrl = config.workerUrl;
+        if (config.icao) this.config.station = config.icao;
+        if (config.aircraftStatusEndpoint) this.config.aircraftStatusEndpoint = config.aircraftStatusEndpoint;
+        if (config.metarRefreshInterval) this.config.metarRefreshInterval = config.metarRefreshInterval * 60 * 1000;
+        if (config.tafRefreshInterval) this.config.tafRefreshInterval = config.tafRefreshInterval * 60 * 1000;
+        if (config.aircraftRefreshInterval) this.config.aircraftStatusRefreshInterval = config.aircraftRefreshInterval * 60 * 1000;
+        if (config.imageRefreshInterval) this.config.imageRefreshInterval = config.imageRefreshInterval * 60 * 1000;
+    },
+
+    /**
      * Parse raw METAR from API response
      */
     parseMetarResponse(data) {
